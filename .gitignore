@@ -1,0 +1,18 @@
+# Visual Studio Files
+/.vs
+/x64
+*.sln
+*.vcxproj*
+
+# VS Code
+/.vscode
+
+# Mac files
+.DS_Store
+*.dSYM.zip
+*.dSYM
+/build
+
+# Built exe
+*.exe
+
