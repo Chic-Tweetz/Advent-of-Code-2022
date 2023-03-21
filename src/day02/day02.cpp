@@ -11,147 +11,148 @@
 class Rps
 {
 public:
-enum class Choice
-{
-    errChoice   = 0,
-    rock        = 1,
-    paper       = 2,
-    scissors    = 3,
-    endChoice
-};
+	enum class Choice
+	{
+		errChoice   = 0,
+		rock        = 1,
+		paper       = 2,
+		scissors    = 3,
+		endChoice
+	};
 
-using enum Choice;
+	using enum Choice;
 
-static const int oppCharSub{ 'A' - 1 };
-static const int youCharSub{ 'X' - 1 };
+	static const int oppCharSub{ 'A' - 1 };
+	static const int youCharSub{ 'X' - 1 };
 
-static const int win{ 6 };
-static const int draw{ 3 };
-static const int loss{ 0 };
+	static const int win{ 6 };
+	static const int draw{ 3 };
+	static const int loss{ 0 };
 
-static constexpr int charOutcome (char outcome)
-{
-    switch (outcome)
-    {
-    case 'Z': return win;
-    case 'Y': return draw;
-    default: return loss;
-    }
-}
-static constexpr Choice charThem (char outcome)
-{
-    switch (outcome)
-    {
-    case 'A': return rock;
-    case 'B': return paper;
-    case 'C': return scissors;
-    default: return errChoice;
-    }
-}
+	static constexpr int charOutcome (char outcome)
+	{
+		switch (outcome)
+		{
+		case 'Z': return win;
+		case 'Y': return draw;
+		default : return loss;
+		}
+	}
+	static constexpr Choice charThem (char outcome)
+	{
+		switch (outcome)
+		{
+		case 'A': return rock;
+		case 'B': return paper;
+		case 'C': return scissors;
+		default : return errChoice;
+		}
+	}
 
-static constexpr std::string_view choicestr(Choice choice)
-{
-    switch (choice)
-    {
-    case rock:      return "rock";
-    case paper:     return "paper";
-    case scissors:  return "scissors";
-    default:        return "???";  
-    }
-}
+	// static constexpr std::string_view choicestr(Choice choice)
+	static constexpr std::string choicestr(Choice choice)
+	{
+		switch (choice)
+		{
+		case rock       : return "rock";
+		case paper      : return "paper";
+		case scissors   : return "scissors";
+		default         : return "???";  
+		}
+	}
 
-static Choice outcome(char them, char outcome)
-{
-    if(outcome < 'X' || outcome > 'Z' ||
-    them < 'A' || them > 'C')
-    {
-        return errChoice;
-    }
+	static Choice outcome(char them, char outcome)
+	{
+		if(outcome < 'X' || outcome > 'Z' ||
+		them < 'A' || them > 'C')
+		{
+			return errChoice;
+		}
 
-    return Rps::outcome(charThem(them), charOutcome(outcome));
-}
+		return Rps::outcome(charThem(them), charOutcome(outcome));
+	}
 
-static Choice outcome(Choice them, int outcome)
-{
-    if (static_cast<int>(them) <= static_cast<int>(errChoice) ||
-        static_cast<int>(them) >= static_cast<int>(endChoice) ||
-        outcome < loss || outcome > win)
-    {
-        return errChoice;
-    }
+	static Choice outcome(Choice them, int outcome)
+	{
+		if (static_cast<int>(them) <= static_cast<int>(errChoice) ||
+			static_cast<int>(them) >= static_cast<int>(endChoice) ||
+			outcome < loss || outcome > win)
+		{
+			return errChoice;
+		}
 
-    switch (outcome)
-    {
-    case win: switch(them)
-        {
-            case rock: return paper;
-            case paper: return scissors;
-            default: return rock;
-        }
-    case loss: switch(them)
-        {
-            case rock: return scissors;
-            case paper: return rock;
-            default: return paper;
-        }
-    default: return them;
-    }
-}
+		switch (outcome)
+		{
+		case win: switch(them)
+			{
+				case rock: return paper;
+				case paper: return scissors;
+				default: return rock;
+			}
+		case loss: switch(them)
+			{
+				case rock: return scissors;
+				case paper: return rock;
+				default: return paper;
+			}
+		default: return them;
+		}
+	}
 
-static int play(Choice them, Choice you)
-{      
-    if (static_cast<int>(you) <= static_cast<int>(errChoice) ||
-        static_cast<int>(you) >= static_cast<int>(endChoice) ||
-        static_cast<int>(them) <= static_cast<int>(errChoice) ||
-        static_cast<int>(them) >= static_cast<int>(endChoice))
-    {
-        return 0;
-    }
+	static int play(Choice them, Choice you)
+	{      
+		if (static_cast<int>(you)  <= static_cast<int>(errChoice) ||
+			static_cast<int>(you)  >= static_cast<int>(endChoice) ||
+			static_cast<int>(them) <= static_cast<int>(errChoice) ||
+			static_cast<int>(them) >= static_cast<int>(endChoice))
+		{
+			return 0;
+		}
 
-    int score{ static_cast<int>(you) };
+		int score{ static_cast<int>(you) };
 
-    // std::cout << choicestr(you);
-    if (them == you)
-    {
-        // std::cout << "you drew\n";
-        // std::cout << " draws with "
-        //     << choicestr(them)
-        //     << ": +" << draw + score << '\n';
-        return draw + score;
-    }
+		// std::cout << choicestr(you);
+		if (them == you)
+		{
+			// std::cout << "you drew\n";
+			// std::cout << " draws with "
+			//     << choicestr(them)
+			//     << ": +" << draw + score << '\n';
+			return draw + score;
+		}
 
-    if ( ( (them == rock)     && (you == paper   ) ) ||
-        ( (them == paper)    && (you == scissors) ) ||
-        ( (them == scissors) && (you == rock    ) ) )
-    {
-        //std::cout << " beats "
-            // << choicestr(them)
-            // << ": +" << win + score << '\n';
-        // std::cout << "you win\n";
-        return win + score;
-    }
+		if (( (them == rock)     && (you == paper   ) ) ||
+			( (them == paper)    && (you == scissors) ) ||
+			( (them == scissors) && (you == rock    ) ))
+		{
+			//std::cout << " beats "
+				// << choicestr(them)
+				// << ": +" << win + score << '\n';
+			// std::cout << "you win\n";
+			return win + score;
+		}
 
-    // std::cout << "you lose";
-    // std::cout << " loses to "
-    //         << choicestr(them)
-    //         << ": +" << loss + score << '\n';
-    return loss + score;
+		// std::cout << "you lose";
+		// std::cout << " loses to "
+		//         << choicestr(them)
+		//         << ": +" << loss + score << '\n';
+		return loss + score;
 
-}
+	}
 
-static int play(char themin, char youin)
-{
-    Choice them { static_cast<Choice>(themin - oppCharSub) };
-    Choice you { static_cast<Choice>(youin - youCharSub) };
+	static int play(char themin, char youin)
+	{
+		Choice them { static_cast<Choice>(themin - oppCharSub) };
+		Choice you { static_cast<Choice>(youin - youCharSub) };
 
-    return play(them, you);
-}
+		return play(them, you);
+	}
 
-static int play2(char them, char outcome)
-{
-    return Rps::play(Rps::charThem(them), Rps::outcome(them, outcome));
-    
-}
+	static int play2(char them, char outcome)
+	{
+		return Rps::play(Rps::charThem(them), Rps::outcome(them, outcome));
+		
+	}
 };
 
 namespace Puzzle1
@@ -173,6 +174,11 @@ namespace Puzzle1
         {
             std::string instr;
             std::getline(inf, instr);
+
+			if (instr.length() == 0)
+			{
+				break;
+			}
 
             yourScore += Rps::play(instr[oppIndex], instr[youIndex]);
         }
@@ -200,6 +206,7 @@ namespace Puzzle2
         {
             std::string instr;
             std::getline(inf, instr);
+			if (!instr.length()) { break; }
 
             yourScore += Rps::play2(instr[oppIndex], instr[youIndex]);
         }

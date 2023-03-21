@@ -10,22 +10,22 @@
 
 namespace Day4
 {
-	std::array<int, 4> getRanges(std::string_view elfpair)
+	// std::array<int, 4> getRanges(std::string_view elfpair) // string_view caused a subscript out of range error on Windows not sure why
+	std::array<int, 4> getRanges(const std::string & elfpair)
 	{
 		static const std::array<char, 4> splitChars{ '-', ',', '-', '\0' };
-		std::array<int, 4> ranges;
-		uint arrInd{ 0 };
+		std::array<int, 4> ranges{};
+		size_t arrInd{ 0 };
 
-		uint start{ 0 };
-		uint end{ 0 };
+		size_t start{ 0 };
+		size_t end{ 0 };
 
 		for (auto ch : splitChars)
 		{
-			while (elfpair[end + 1] != ch && end < elfpair.length() - 1)
-			{
-				++end;
-			}
+			while (elfpair[end + 1] != ch && end++ < elfpair.length() - 1);
+
 			ranges[arrInd++] = std::atoi(elfpair.substr(start, end).data());
+
 			start = end += 2; // oo dirty
 		}
 
@@ -108,8 +108,8 @@ namespace Puzzle2
 int main()
 {
 	const std::string input{ utils::getFilePath(__FILE__) };
-
-    Puzzle1::solve(input); 
+	
+	Puzzle1::solve(input);
 	Puzzle2::solve(input);
 	
 	return 0;

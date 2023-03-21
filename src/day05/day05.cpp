@@ -17,19 +17,19 @@ namespace Day5
 	using CrateStackType = std::deque<char>;
 	using CrateStacksType = std::vector<CrateStackType>;
 
-	const uint crateSpacing{ 4 }; // each letter is 4 indices apart: [Z] [F]
+	const size_t crateSpacing{ 4 }; // each letter is 4 indices apart: [Z] [F]
 
 	// Should give us 9 crate deques with the top crate at each index at pop_front()
 	CrateStacksType makeCratesVector(const std::string &instr)
 	{
 		// 4 chars per crate, 3 for the last crate per line which has no trailing space
-		const uint stacksCount{ static_cast<uint>( std::ceil(instr.length() / static_cast<double>(crateSpacing)) ) };
+		const size_t stacksCount{ static_cast<size_t>( std::ceil(instr.length() / static_cast<double>(crateSpacing)) ) };
 		
 		CrateStacksType crates;
 		crates.reserve(stacksCount);
 
 		// Creating empty deques for our crates to go into
-		for(uint i{ 0 }; i < stacksCount; ++i)
+		for(size_t i{ 0 }; i < stacksCount; ++i)
 		{
 			crates.push_back(CrateStackType{});
 		}
@@ -61,10 +61,10 @@ namespace Day5
 		return true;
 	}
 
-    std::array<uint, 3> parseInstruction(const std::string & instr)
+    std::array<size_t, 3> parseInstruction(const std::string & instr)
     {
         const std::array<std::string, 3> instructionWords{ "move ", " from ", " to " };
-        std::array<uint, 3> instruction;
+        std::array<size_t, 3> instruction;
 
         std::string tonumber{};
 
@@ -80,7 +80,7 @@ namespace Day5
             }
 
 			// Silly bool cast so that we get proper indices when i > 0
-            instruction[i] = static_cast<uint>( std::stoi(tonumber) ) - static_cast<bool>(i);
+            instruction[i] = static_cast<size_t>( std::stoi(tonumber) ) - static_cast<bool>(i);
             tonumber = "";
         }
 		
@@ -103,10 +103,10 @@ namespace Puzzle1
 {
 	using namespace Day5;
 
-	void moveCrates(CrateStacksType &crates, const std::array<uint, 3> &instruction)
+	void moveCrates(CrateStacksType &crates, const std::array<size_t, 3> &instruction)
 	{
 		// [0] = repeats [1] = from [2] = to
-		for(uint i{ 0 }; i < instruction[0]; ++i)
+		for(size_t i{ 0 }; i < instruction[0]; ++i)
 		{
 			crates[instruction[2]].push_front(crates[instruction[1]].front());
 			crates[instruction[1]].pop_front();
@@ -152,7 +152,7 @@ namespace Puzzle2
 {
 	using namespace Day5;
 
-	void moveCrates(CrateStacksType &crates, const std::array<uint, 3> &instruction)
+	void moveCrates(CrateStacksType &crates, const std::array<size_t, 3> &instruction)
     {
 		// Stack on the bottom, then back to the top so we get the right order
         for (size_t i{ 0 }; i < instruction[0]; ++i)

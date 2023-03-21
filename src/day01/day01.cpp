@@ -7,7 +7,7 @@
 #include <numeric>
 #include <string>
 
-#include "utils.h"
+#include "../../include/utils.h"
 
 namespace Puzzle1
 {

@@ -14,10 +14,10 @@ namespace Day6
 	class CharsCircular
 	{
 	public:
-		CharsCircular(uint num = 4) : size{ num }
+		CharsCircular(size_t num = 4) : size{ num }
 		{
 			Node** currptr{ &curr };
-			for(uint i{ 0 }; i < size; ++i)
+			for(size_t i{ 0 }; i < size; ++i)
 			{
 				*currptr = new Node;
 				currptr = &((*currptr)->next);
@@ -28,7 +28,7 @@ namespace Day6
 		CharsCircular(std::string_view chars) : size{ chars.length() }
 		{
 			Node** currptr{ &curr };
-			for(uint i{ 0 }; i < size; ++i)
+			for(size_t i{ 0 }; i < size; ++i)
 			{
 				*currptr = new Node(chars[i]);
 				currptr = &((*currptr)->next);

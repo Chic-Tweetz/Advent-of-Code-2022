@@ -85,7 +85,7 @@ namespace utils
 
         inf.seekg(0, std::ios::end);
         // auto end{ inf.tellg() };
-        buffer.reserve(static_cast<uint>(inf.tellg()));
+        buffer.reserve(static_cast<unsigned int>(inf.tellg()));
         inf.seekg(0, std::ios::beg);
 
         for (char ch{ static_cast<char>(inf.get()) }; !inf.eof(); ch = static_cast<char>(inf.get()))

@@ -1,218 +1,244 @@
-// Turns out the first one only needed a -1 changed to a 0 and now it works!
-
+#include <algorithm>
+#include <array>
 #include <exception>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <string>
-#include <utility>
 
 #include "utils.h"
 
-// Redid this messily to try and get an answer because it was annoying me
-// Turned out I needed to change a -1 to a 0 in the first attempt lol
-
-// directories from cd
-// with parents
-// up to the root
-// where we will start
-
-// root/jssbn/lfrctthp
-
-//etc
-
-// heirarchy needs to be preserved somehow
-
-// file sizes need to be calculated
-
-// can kind of assume that we don't need to create directories until we cd into them
-
-struct File
-{
-    File(const std::string &_name, int _size) : name{ _name }, size{ _size } 
-    {
-    }
-
-    std::string name;
-    int size;
-};
-
-class Dir
-{
-public: 
-    Dir(const std::string &name, Dir* parent) : m_name{ name }, m_parent{ parent } {}
-    ~Dir()
-    {
-        for(auto file : m_files)
-        {
-            delete file;
-        }
-        for(auto directory : m_chlidDirectories)
-        {
-            delete directory;
-        }
-    }
-
-    const std::string m_name;
-    Dir* m_parent;
-    std::vector<Dir*> m_chlidDirectories;
-    std::vector<File*> m_files;
-
-};
-
-class FileTree
+class DirTree
 {
 public:
-    FileTree() : m_root{ new Dir{ "/", nullptr } }, m_pwd{ m_root } { }
+    DirTree() : m_root{ new Dir{ "/", nullptr } }, m_pwd{ m_root } {}
+    ~DirTree() { delete m_root; }
 
-    void touch(const std::string &instr)
+    void parseInput(const std::string &line)
     {
-        uint i{ 0 };
-        while(instr[i++] != ' ');
-
-        auto name{ instr.substr(i, instr.length()) };
-
-        for (auto file : m_pwd->m_files)
+        // cmd
+        if (line[0] == '$')
         {
-            if (file->name == name)
+            // There are only two commands, so:
+            if (line[2] == 'c') // cd
             {
-                std::cout << '\n';
+                // 6th char onwards = dir name
+                auto dir{ line.substr(5, line.length()) };
+
+                // std::cout << "Parsed cd: " << dir << '\n';
+
+                cd(dir);
                 return;
             }
-        }
-
-        int size{ 0 };
-        
-        auto sizestr{ instr.substr(0, i) };
-        try
-        {
-            size = std::stoi(sizestr);
-            /* code */
-        }
-        catch(const std::exception& e)
-        {
-            std::cout << "sizestr: " << sizestr << '\n';
-            std::cerr << e.what() << '\n';
-        }
-        
-        // std::cout << name << ": " << size << ".\n";
-
-        std::cout << "touch " << name << ", " << size << '\n';
-
-        m_pwd->m_files.push_back(new File(name, size));
-    }
-
-    void mkdir(const std::string &name)
-    {
-        for (auto dir : m_pwd->m_chlidDirectories)
-        {
-            if (dir->m_name == name)
+            else if (line[2] == 'l') // ls
             {
-                std::cout << '\n';
+                // Don't need to do anything really
+                // although you could keep track of whether a directory
+                // has had its contents listed
+                // and then you could skip until the next command
                 return;
             }
-        }
 
-        std::cout << "mkdir " << name << '\n';
-
-        m_pwd->m_chlidDirectories.push_back(new Dir{ name, m_pwd });
-    }
-
-    void parse(const std::string &instr)
-    {
-        std::cout << instr;
-
-        for (size_t i{ instr.length() }; i < 25; ++i)
-        {
-            std::cout << ' ';
-        }
-        std::cout << "|| ";
-
-        if (instr[0] == '$')
-        {
-            if (instr[2] == 'c')
-            {
-                auto dir{ instr.substr(5, instr.length()) };
-                // std::cout << dir << " : ";
-                
-                if (dir == "/")
-                {
-                    std::cout << "cd /" << '\n';
-                    m_pwd = m_root;
-                    return;
-                    
-                }
-                else if (dir == "..")
-                {
-                    if (m_pwd->m_parent)
-                    {
-                        std::cout << "cd " << m_pwd->m_parent->m_name << '\n';
-                        m_pwd = m_pwd->m_parent;
-
-                    }
-                        return;
-                }
-                else
-                {
-                    for (auto subdir : m_pwd->m_chlidDirectories)
-                    {
-                        // std::cout << subdir->m_name << " vs " << dir << '\n';
-                        if (subdir->m_name == dir)
-                        {
-                            std::cout << "cd " << subdir->m_name << '\n';
-                            m_pwd = subdir;
-                            return;
-                        }
-                    }
-                    std::cout << "no match for cd " << dir << '\n';
-                    return;
-                }  
-            }
-            else if (instr[2] == 'l')
-            {
-                std::cout << '\n';
-                return;
-            }        
-        }
-
-        else if (instr[0] == 'd')
-        {
-            mkdir(instr.substr(4, instr.length()));
             return;
         }
-        
-        touch(instr);
+        // directory listed by ls
+        else if (line[0] == 'd') // dir dirname
+        {
+            // 5th char onwards = dir name
+            auto dir{ line.substr(4, line.length()) };
+            // std::cout << "Parsed dir name: " << dir << '\n';
+            mkdir(dir);
+            return;
+        }
+        // file listed by ls
+        else
+        {
+            // Get the filesize
+            size_t i{ 0 };
+            while(line[i++] != ' ');
+
+            int size{ std::stoi(line.substr(0, i)) };
+            auto name{ line.substr(i, line.length()) };
+
+            touch(name, size); 
+        }
     }
 
-//private:
+    void sumPuzzleDirsBelow(int limit = 100000) const
+    {
+        int acc{ 0 };
+        for (auto & dir : m_allDirectories)
+        {
+            // std::cout << dir->name << " | " << dir->size;
+            if (dir->size <= limit)
+            {
+                acc += dir->size;
+                // std::cout << " ****** YES **  " << acc;
+            }
+            // std::cout << '\n';
+        }
+        std::cout << "Sum of directory sizes of at most " << limit << ": " << acc << '\n';
+    }
+
+    void chooseDirectoryToDelete(const int totalStorage = 70000000, const int requiredStorage = 30000000) const
+    {
+        std::cout << "Storage used: " << m_root->size;
+
+        const int freeStorage{ totalStorage - m_root->size };
+        const int storageToFree{ requiredStorage - freeStorage };
+
+        auto minDir{ std::min_element(m_allDirectories.begin(), m_allDirectories.end(),
+            [storageToFree](const Dir* const a, const Dir* const b)
+            {
+                return a->size < b->size && a->size > storageToFree;
+            }) 
+            };
+
+        std::cout << ", free: " << freeStorage << '\n'
+            << "amount to delete: " << storageToFree << '\n' 
+            << "Dir choice: " << (*minDir)->name 
+            << ", with size: " << (*minDir)->size << '\n';
+    }
+    
+private:
+
+    struct File
+    {
+        // size was defaulting to -1 for a sentinel value I never used (something like if size == -1, recount or ignore you know)
+        // but this somehow ended up with the answer being off by -32 
+        // setting default of _size = 0 gets the right answer!
+        File(const std::string &_name, const int _size = 0) : name{ _name }, size{ _size } {};
+        std::string name;
+        int size{ 0 }; // Perhaps a sentinel value (-1 or something) could be useful
+    };
+    struct Dir : public File
+    {
+        Dir(const std::string &_name, Dir *_parent) : File{ _name }, parent{ _parent } {}
+        ~Dir()
+        {
+            for (auto file : files)
+            {
+                // std::cout << "deleting: " << file.first << '\n';
+                delete file.second;
+            }
+            for (auto dir : directories)
+            {
+                // std::cout << "deleting: " << dir.first << '\n';
+                delete dir.second;
+            }
+        }
+
+        // std::string name;
+        Dir* parent;
+        // std::map<std::string &, File*> children; // Dir inherits from Files so they could be in one container
+        // I don't think map was the right choice
+        std::map<const std::string, Dir*> directories;
+        
+        std::map<const std::string, File*> files;
+
+        // int size{ -1 }; // Sentinel value suggesting size hasn't been calculated
+    };
+
     Dir* m_root;
     Dir* m_pwd;
+    
+    // Because I still want to get the solution after all
+    std::vector<Dir*> m_allDirectories;
+
+    const std::array<const std::string, 3> reserved{ ".", "..", "/" };
+
+    Dir* cd(const std::string &_name)
+    {
+        if (_name == ".")
+        {
+            return m_pwd;
+        }
+        if (_name == "..")
+        {
+            m_pwd = m_pwd->parent ? m_pwd->parent : m_root;
+            return m_pwd;
+        }
+        if (_name == "/")
+        {
+            m_pwd = m_root;
+            return m_pwd;
+        }
+
+        if (m_pwd->directories.contains(_name))
+        {
+            m_pwd = m_pwd->directories[_name];
+            return m_pwd;
+        }
+        else
+        {
+            std::cout << "no such directory: " << _name << '\n';
+            return m_pwd;
+        }
+    }
+
+    Dir* mkdir(const std::string &_name)
+    {
+        if (m_pwd->directories.contains(_name))
+        {
+            std::cout << "directory already exists: " << _name << '\n'; 
+            return cd(_name);
+        }
+
+        if (std::find(reserved.begin(), reserved.end(), _name) != reserved.end())
+        {
+            std::cout << "reserved dir name: " << _name << '\n';
+            return cd(_name);
+        }
+
+        Dir* newdir{ new Dir{ _name, m_pwd } };
+        m_pwd->directories[newdir->name] = newdir;
+
+        m_allDirectories.push_back(newdir);
+         
+        return newdir;
+    }
+
+    File* touch(const std::string &name, int size)
+    {
+        if (std::find(reserved.begin(), reserved.end(), name) != reserved.end())
+        {
+            std::cout << "reserved names: " << name << '\n';
+            return nullptr; // Maybe return null?
+        }
+
+        if (m_pwd->files.contains(name))
+        {
+            std::cout << "file already exists: " << name << '\n'; 
+            return nullptr;
+        }
+
+        auto newfile{ new File(name, size) };
+
+        m_pwd->files[newfile->name] = newfile;
+        // m_pwd->size += size;
+
+        addToSize(size, m_pwd);
+        
+        return m_pwd->files[name];
+    }
+
+    void addToSize(const int size, Dir* const dir) const
+    {
+        dir->size += size;
+        if(dir->parent)
+        {
+            addToSize(size, dir->parent);
+        }
+    }
+
 };
-
-std::vector<std::pair<Dir*, int>> dirsUnderLimit;
-
-int thinking(Dir *dir)
-{
-    int acc{ 0 };
-    for (auto directory : dir->m_chlidDirectories)
-    {
-        acc += thinking(directory);
-    }
-    for (auto file : dir->m_files)
-    {
-        acc += file->size;
-    }
-    if (acc <= 100000)
-    {
-        dirsUnderLimit.push_back(std::pair<Dir*, int>{ dir, acc });
-    }
-    return acc;
-}
 
 namespace Puzzle1
 {
 	void solve(const std::string& infile)
 	{
+        
 		std::ifstream inf { infile };
 
 		if (!inf)
@@ -220,30 +246,20 @@ namespace Puzzle1
 			throw std::runtime_error("could not open " + infile);
 		}
 
-        FileTree ft;
-        int limitLines{ 5000000 };
-        while(inf && limitLines-- > 0)
+        DirTree root;
+
+        while(inf)
         {
             std::string instr;
             std::getline(inf, instr);
             if (instr.length() > 0)
             {
-                ft.parse(instr);
-                // std::cout << instr << " | gets:\n";
-                // File{ instr }; 
+                root.parseInput(instr);
             }
         }
 
-        thinking(ft.m_root);
-
-        int total{ 0 };
-        for (auto dir : dirsUnderLimit)
-        {
-            total += dir.second;
-        }
-        std::cout << "answer: " << total << '\n';
-        // How the hell was I off by 32 the first time?!
-
+        root.sumPuzzleDirsBelow(100000);
+    
 	}
 };
 
@@ -251,12 +267,28 @@ namespace Puzzle2
 {
 	void solve(const std::string& infile)
 	{
-		std::ifstream inf{ infile };
+        
+		std::ifstream inf { infile };
 
 		if (!inf)
 		{
 			throw std::runtime_error("could not open " + infile);
 		}
+
+        DirTree root;
+
+        while(inf)
+        {
+            std::string instr;
+            std::getline(inf, instr);
+            if (instr.length() > 0)
+            {
+                root.parseInput(instr);
+            }
+        }
+
+        root.chooseDirectoryToDelete(70000000, 30000000);
+    
 	}
 };
 
@@ -268,4 +300,4 @@ int main()
 	Puzzle2::solve(input);
 	
 	return 0;
-}
+}   
