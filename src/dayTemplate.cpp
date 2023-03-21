@@ -38,7 +38,7 @@ int main()
 {
 	const std::string input{ utils::getFilePath(__FILE__) };
 
-    Puzzle1::solve(input); 
+	Puzzle1::solve(input); 
 	Puzzle2::solve(input);
 	
 	return 0;
