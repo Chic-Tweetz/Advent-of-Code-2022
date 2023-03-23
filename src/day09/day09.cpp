@@ -21,13 +21,19 @@ struct Coord
 	int x{ 0 };
 	int y{ 0 };
 
+	// Overloading specific operators that should help with the tail function
 	friend Coord operator+(const Coord& a, const Coord& b) { return { a.x + b.x, a.y + b.y }; }
 	friend Coord operator-(const Coord& a, const Coord& b) { return { a.x - b.x, a.y - b.y }; }
 	friend bool operator==(const Coord& a, const Coord& b) { return a.x == b.x && a.y == b.y; }
-
-	friend bool operator!=(const Coord& a, const int& b) { return !(a.x == b && a.y == b); }
-	// friend bool operator<(const Coord&a, const Coord& b) { return a.y < b.y || ( a.y == b.y && a.x < b.x ); }
 	friend bool operator<(const Coord&a, const Coord& b) { return a.x < b.x || ( a.x == b.x && a.y < b.y ); }
+
+	friend Coord operator+(const Coord& a, const int& b) { return { a.x + b, a.y + b }; }
+	// Int comparisons not necessarily intuitive but useful for the checks we use
+	friend bool operator==(const Coord& a, const int& b) { return a.x == b && a.y == b; }
+	friend bool operator!=(const Coord& a, const int& b) { return !(a.x == b && a.y == b); }
+	friend bool operator>(const Coord& a, const int& b) { return a.x > b || a.y > b; }
+
+	explicit operator bool () const {return !(x == 0 && y == 0); }
 
 	Coord& operator+=(const Coord& b)
 	{
@@ -35,6 +41,16 @@ struct Coord
 		this->y += b.y;
 		return *this;
 	}
+	Coord& operator+=(const int& b)
+	{
+		this->x += b;
+		this->y += b;
+		return *this;
+	}
+	
+	friend Coord operator/(const Coord& a, const Coord& b) { return { a.x / b.x, a.y / b.y }; }
+
+	Coord abs() { return { std::abs(x), std::abs(y) }; }
 	
 };
 
@@ -58,100 +74,160 @@ std::pair<Coord, int> parseLine(const std::string &line)
 	}
 }
 
-// Long ropes can create diagonal gaps of 2, 2 so you need to make sure 
-// to limit diagonal moves to max of 1, 1
-Coord tailMove(const Coord &head, const Coord & tail)
+Coord moveTail(const Coord &head, const Coord & tail)
 {
-	Coord dist{ head - tail };
-	Coord move{ tail };
-	
-	if (dist.x > 1)
-	{
-		move.x = head.x - 1;
-		move.y = head.y;
-	}
-	else if (dist.x < -1)
-	{
-		move.x = head.x + 1;
-		move.y = head.y;
-	}
-	else if (dist.y > 1)
-	{
-		move.y = head.y - 1;
-		move.x = head.x;
-	}
-	else if (dist.y < -1)
-	{
-		move.y = head.y + 1;
-		move.x = head.x;
+	auto dist{ head - tail };
+	auto distMag{ dist.abs() };
+
+	// Keep direction, reduce any x or y movement to at most 1
+	if (distMag > 1)
+	{	
+		return dist / distMag;
 	}
 
-	return move;
-	
+	return { 0, 0 };
 }
 
-// Dirty if else chains but this finally got the right answer
-Coord tailMove2(const Coord &head, const Coord & tail)
+// Update knot locations until rope.end() is reached, return true if tail moves
+bool propagateRopeMove(Coord* knotParent, const Coord* end)
 {
-	// Move up to 1 in one or two directions
-
-	auto dist{ head - tail };
-	Coord move{ 0, 0 };
-	if (dist.x > 1)
+	// If we make it all the way to rope.end(), tail must have moved
+	if (knotParent + 1 == end)
 	{
-		move.x = 1;
-
-		if (dist.y > 0)
-		{
-			move.y = 1;
-		}
-		else if (dist.y < 0)
-		{
-			move.y = -1;
-		}
-	}
-	else if (dist.x < -1)
-	{
-		move.x = -1;
-
-		if (dist.y > 0)
-		{
-			move.y = 1;
-		}
-		else if (dist.y < 0)
-		{
-			move.y = -1;
-		}
+		return true;
 	}
 
-	else if (dist.y > 1)
-	{
-		move.y = 1;
+	auto dist{ *knotParent - *(knotParent + 1) };
 
-		if (dist.x > 0)
-		{
-			move.x = 1;
-		}
-		else if (dist.x < 0)
-		{
-			move.x = -1;
-		}
-	}
-	else if (dist.y < -1)
+	// Stop propogation, return false to signify no need to update list of visited coords
+	if (!dist)
 	{
-		move.y = -1;
-
-		if (dist.x > 0)
-		{
-			move.x = 1;
-		}
-		else if (dist.x < 0)
-		{
-			move.x = -1;
-		}
+		return false;
 	}
 
-	return move;
+	auto distMag{ dist.abs() };
+
+	// Keep direction, reduce any x or y movement to at most 1
+	if (distMag > 1)
+	{	
+		*(knotParent + 1) += dist / distMag;
+	}
+
+	return propagateRopeMove(++knotParent, end);
+}
+
+// Returns true if the tail moves
+bool moveRope(Coord* head, const Coord *end, const Coord &move)
+{
+	*head += move;
+	return propagateRopeMove(head, end);
+}
+
+void drawRope(Coord* head, Coord* end)
+{
+	Coord min { *head };
+	Coord max { *head };
+
+	std::for_each(head + 1, end, 
+		[&min, &max](const Coord &knot)
+		{
+			if (knot.x > max.x)
+			{
+				max.x = knot.x;
+			}
+			else if (knot.x < min.x)
+			{
+				min.x = knot.x;
+			}
+
+			if (knot.y > max.y)
+			{
+				max.y = knot.y;
+			}
+			else if (knot.y < min.y)
+			{
+				min.y = knot.y;
+			}
+		});
+
+	Coord span{ (max - min) + 1 };
+
+	std::string blank( static_cast<size_t>(span.x), ' ' );
+	std::vector<std::string> grid{ static_cast<size_t>(span.y), blank };
+
+	for (int i{ 0 }; &(head[i]) != end; ++i)
+	{
+		char ch;
+		if (i == 0)
+		{
+			ch = 'H';
+		}
+		else if (&(head[i]) == end - 1)
+		{
+			ch = 'T';
+		}
+		else
+		{
+			ch = std::to_string(i + 1)[0];
+		}
+		// Why haven't I struggled with this before
+		auto normalised{ head[i] - min };
+		auto &ingrid{ grid[static_cast<size_t>(normalised.y)][static_cast<size_t>(normalised.x)] };
+		ingrid = ingrid == ' ' ? ch : ingrid;
+	}
+
+	for (auto &line : grid)
+	{
+		std::cout << line << '\n';
+	}
+
+	std::cout << '\n';
+
+}
+
+struct BmpHeader {
+    char bitmapSignatureBytes[2] = {'B', 'M'};
+    uint32_t sizeOfBitmapFile = 54 + 786432;
+    uint32_t reservedBytes = 0;
+    uint32_t pixelDataOffset = 54;
+}; 
+
+struct BmpInfoHeader {
+    uint32_t sizeOfThisHeader = 40;
+    int32_t width = 512; // in pixels
+    int32_t height = 512; // in pixels
+    uint16_t numberOfColorPlanes = 1; // must be 1
+    uint16_t colorDepth = 24;
+    uint32_t compressionMethod = 0;
+    uint32_t rawBitmapDataSize = 0; // generally ignored
+    int32_t horizontalResolution = 3780; // in pixel per meter
+    int32_t verticalResolution = 3780; // in pixel per meter
+    uint32_t colorTableEntries = 0;
+    uint32_t importantColors = 0;
+};
+
+struct Pixel {
+    uint8_t blue = 255;
+    uint8_t green = 0;
+    uint8_t red = 0;
+};
+
+void createBitMap()
+{
+	BmpHeader bmpHeader;
+	BmpInfoHeader bmpInfoHeader;
+	Pixel pixel;
+    std::ofstream fout("output.bmp", std::ios::binary);
+
+    fout.write((char *) &bmpHeader, 14);
+    fout.write((char *) &bmpInfoHeader, 40);
+
+    // writing pixel data
+    size_t numberOfPixels = static_cast<size_t>(bmpInfoHeader.width) * static_cast<size_t>(bmpInfoHeader.height);
+    for (size_t i = 0; i < numberOfPixels; i++) {
+        fout.write((char *) &pixel, 3);
+    }
+    fout.close();
 }
 
 void drawRope(const Coord &head, const Coord &tail)
@@ -212,41 +288,30 @@ namespace Puzzle1
 		Coord head{ 0, 0 };
 		std::set<Coord> visited{ tail };
 
-		std::cout << "H: " << head << " | T: " << tail << '\n';
-		//int limit {10};
-		// while(inf && limit-- > 0)
 		while(inf)
 		{
 			std::string instr;
 			std::getline(inf, instr);
 			auto result{ parseLine(instr) };
-			std::cout << "== " << instr << " : " << result.first << " * " << result.second << " ==" << "\n\n";
 
 			for (int i{ 0 }; i < result.second; ++i)
 			{
 				head += result.first;
 
-				auto newtail{ tailMove(head, tail) };
+				auto tailmove{ moveTail(head, tail) };
 
-				if (newtail != tail)
+				if (tailmove != 0)
 				{
-					tail = tailMove(head, tail);
+					tail += tailmove;
 					visited.insert(tail);
 				}
 
-				std::cout << "H: " << head << " | T: " << tail << "\n";
-
-				// drawRope(head, tail);
 			}
-			std::cout << '\n';
 		}
 
-		for(auto t : visited)
-		{
-			std::cout << "visited: " << t << '\n';
-		}
+		std::cout << "Unique spaces visited by tail of 2 Planck length rope: " << visited.size() << '\n';
 
-		std::cout << "unique spaces visited: " << visited.size() << '\n';
+
 	}
 };
 
@@ -263,55 +328,63 @@ namespace Puzzle2
 
 		std::array<Coord, 10> rope;
 		std::set<Coord> visited{ rope[0] };
-		
-		// int limit { 25 };
-		// while (inf && limit-- > 0)
+
 		while(inf)
 		{
 			std::string instr;
 			std::getline(inf, instr);
-			auto result{ parseLine(instr) };
-			// std::cout << "== " << instr << " : " << result.first << " * " << result.second << " ==" << "\n\n";
+			auto moves{ parseLine(instr) };
 
-			for (int i{ 0 }; i < result.second; ++i)
+			while (moves.second)
 			{
-				rope[0] += result.first;
-
-				for (size_t knot{ 1 }; knot < rope.size() - 1; ++knot)
+				if (moveRope(rope.begin(), rope.end(), moves.first))
 				{
-					rope[knot] += tailMove2(rope[knot - 1], rope[knot]);
+					visited.insert(*rope.rbegin());
 				}
 
-				auto tailmove{ tailMove2(rope[rope.size() - 2], rope[rope.size() - 1]) };
+				--moves.second;
 
-				if (tailmove != 0)
-				{
-					rope[rope.size() - 1] += tailmove;
-					visited.insert(rope[rope.size() - 1]);
-				}
-			
-				// for (auto &k : rope)
-				// {
-				// 	std::cout << k << '\n';
-				// }
-				// std::cout << '\n';
-				// drawRope(head, tail);
+				// This is drawing far too many lines...
+				drawRope(rope.begin(), rope.end());
 			}
 		}
 
-		// Still wrong. Wronger even than before!
-		std::cout << "unique spaces visited: " << visited.size() << '\n';
-	}
+		// auto minx{ *(std::min_element(rope.begin(), rope.end())) };
+		// auto maxx{ *(std::max_element(rope.begin(), rope.end())) };
 
+		// auto miny{ *(std::min_element(rope.begin(), rope.end(),
+		// 	[](const Coord &a, const Coord &b)
+		// 	{
+		// 		return a.y > b.y;
+		// 	}))  };
+		// auto maxy{ *(std::min_element(rope.begin(), rope.end(),
+		// 	[](const Coord &a, const Coord &b)
+		// 	{
+		// 		return a.y < b.y;
+		// 	}))  };
+
+		// std::cout << "min: " << minx << " max: " << maxx << '\n';
+		// std::cout << "miny: " << miny << "maxy: " << maxy << '\n';
+
+		// Coord span;
+
+		// span.x = maxx.x - minx.x;
+		// span.y = maxy.y - miny.y;
+
+		// std::cout << "Span: " << span << '\n';
+
+		// std::cout << "Unique spaces visited by tail of 10 Planck length rope: " << visited.size() << '\n';
+	}
 };
 
 int main()
 {
 	const std::string input{ utils::getFilePath(__FILE__) };
 
-	Puzzle1::solve(input); 
-	Puzzle2::solve(input);
+	// Puzzle1::solve(input); 
+	// Puzzle2::solve(input);
 	
+	createBitMap();
 
 	return 0;
 }
