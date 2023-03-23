@@ -16,3 +16,5 @@
 # Built exe
 *.exe
 
+# Large Files
+/Images

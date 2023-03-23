@@ -1,5 +1,6 @@
 // Copy and paste for each day for a quick start
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <exception>
@@ -11,6 +12,7 @@
 #include <string>
 #include <utility>
 
+#include "image.h"
 #include "utils.h"
 
 struct Coord
@@ -26,6 +28,7 @@ struct Coord
 	friend Coord operator-(const Coord& a, const Coord& b) { return { a.x - b.x, a.y - b.y }; }
 	friend bool operator==(const Coord& a, const Coord& b) { return a.x == b.x && a.y == b.y; }
 	friend bool operator<(const Coord&a, const Coord& b) { return a.x < b.x || ( a.x == b.x && a.y < b.y ); }
+	friend bool operator>(const Coord&a, const Coord& b) { return a.x > b.x || ( a.x == b.x && a.y > b.y ); }
 
 	friend Coord operator+(const Coord& a, const int& b) { return { a.x + b, a.y + b }; }
 	// Int comparisons not necessarily intuitive but useful for the checks we use
@@ -48,11 +51,18 @@ struct Coord
 		return *this;
 	}
 	
-	friend Coord operator/(const Coord& a, const Coord& b) { return { a.x / b.x, a.y / b.y }; }
+	friend Coord operator/(const Coord& a, const Coord& b)
+	{
+		int divx{ b.x == 0 ? 1 : b.x };
+		int divy{ b.y == 0 ? 1 : b.y };
+		return { a.x / divx, a.y / divy };
+	}
 
 	Coord abs() { return { std::abs(x), std::abs(y) }; }
 	
 };
+
+using Rope = std::array<Coord, 20>;
 
 std::ostream& operator<<(std::ostream& os, const Coord& coord)
 {
@@ -125,8 +135,10 @@ bool moveRope(Coord* head, const Coord *end, const Coord &move)
 
 void drawRope(Coord* head, Coord* end)
 {
-	Coord min { *head };
-	Coord max { *head };
+	static int calls{ 0 };
+
+	Coord min{ *head };
+	Coord max{ *head };
 
 	std::for_each(head + 1, end, 
 		[&min, &max](const Coord &knot)
@@ -155,6 +167,7 @@ void drawRope(Coord* head, Coord* end)
 	std::string blank( static_cast<size_t>(span.x), ' ' );
 	std::vector<std::string> grid{ static_cast<size_t>(span.y), blank };
 
+	/*
 	for (int i{ 0 }; &(head[i]) != end; ++i)
 	{
 		char ch;
@@ -170,7 +183,7 @@ void drawRope(Coord* head, Coord* end)
 		{
 			ch = std::to_string(i + 1)[0];
 		}
-		// Why haven't I struggled with this before
+		
 		auto normalised{ head[i] - min };
 		auto &ingrid{ grid[static_cast<size_t>(normalised.y)][static_cast<size_t>(normalised.x)] };
 		ingrid = ingrid == ' ' ? ch : ingrid;
@@ -182,93 +195,115 @@ void drawRope(Coord* head, Coord* end)
 	}
 
 	std::cout << '\n';
+	*/
 
-}
 
-struct BmpHeader {
-    char bitmapSignatureBytes[2] = {'B', 'M'};
-    uint32_t sizeOfBitmapFile = 54 + 786432;
-    uint32_t reservedBytes = 0;
-    uint32_t pixelDataOffset = 54;
-}; 
+	//// Well that was fun
+	
 
-struct BmpInfoHeader {
-    uint32_t sizeOfThisHeader = 40;
-    int32_t width = 512; // in pixels
-    int32_t height = 512; // in pixels
-    uint16_t numberOfColorPlanes = 1; // must be 1
-    uint16_t colorDepth = 24;
-    uint32_t compressionMethod = 0;
-    uint32_t rawBitmapDataSize = 0; // generally ignored
-    int32_t horizontalResolution = 3780; // in pixel per meter
-    int32_t verticalResolution = 3780; // in pixel per meter
-    uint32_t colorTableEntries = 0;
-    uint32_t importantColors = 0;
-};
+	//int canvasWidth{ 640 };
+	//int canvasHeight{ 480 };
+	//Coord origin{ 320, 240 };
 
-struct Pixel {
-    uint8_t blue = 255;
-    uint8_t green = 0;
-    uint8_t red = 0;
-};
+	//Image bmp{ canvasWidth, canvasHeight, Color(1.f, 1.f, 1.f)};
 
-void createBitMap()
-{
-	BmpHeader bmpHeader;
-	BmpInfoHeader bmpInfoHeader;
-	Pixel pixel;
-    std::ofstream fout("output.bmp", std::ios::binary);
+	//for (int i{ 0 }; &(head[i]) != end; ++i)
+	//{
+	//	auto pixel{ origin + head[i] };
+	//	if (pixel.x < 0 || pixel.y < 0 || pixel.x >= canvasWidth || pixel.y >= canvasHeight)
+	//	{
+	//		continue;
+	//	}
+	//	bmp.setColor(Color{ 1.f, 0.f, 0.f }, pixel.x, pixel.y);
+	//}
 
-    fout.write((char *) &bmpHeader, 14);
-    fout.write((char *) &bmpInfoHeader, 40);
 
-    // writing pixel data
-    size_t numberOfPixels = static_cast<size_t>(bmpInfoHeader.width) * static_cast<size_t>(bmpInfoHeader.height);
-    for (size_t i = 0; i < numberOfPixels; i++) {
-        fout.write((char *) &pixel, 3);
-    }
-    fout.close();
-}
+	//Image bmp{ static_cast<int>(grid[0].length()), static_cast<int> (grid.size()) };
+	//for (size_t y{ 0 }; y < grid.size(); ++y)
+	//{
+	//	for (size_t x{ 0 }; x < grid[0].length(); ++x)
+	//	{
+	//		if (grid[y][x] != ' ')
+	//		{
+	//			bmp.setColor(Color(1.f, 0.f, 0.f), static_cast<int>(x), static_cast<int>(y));
+	//		}
+	//	}
+	//}
 
-void drawRope(const Coord &head, const Coord &tail)
-{
-	int spacesCount { std::abs(head.x - tail.x) };
-	int newLinesCount { std::abs(head.y - tail.y) };
-	std::string spaces{};
-	std::string newlines{};
-	for (int i{ 0 }; i < spacesCount - 1; ++i)
+	
+	//min.x = min.x > 0 ? 0 : min.x;
+	//min.y = min.y > 0 ? 0 : min.y;
+	//max.x = max.x < 0 ? 0 : max.x;
+	//max.y = max.y < 0 ? 0 : max.y;
+
+
+	//min.x = min.x > 0 ? -1 * max.x : min.x;
+	//min.y = min.y > 0 ? -1 * max.y : min.y;
+	//max.x = max.x < 0 ? -1 * min.x : max.x;
+	//max.y = max.y < 0 ? -1 * min.y : max.y;
+
+	auto minabs = min.abs();
+	auto maxabs = max.abs();
+
+	max.x = std::max(minabs.x, maxabs.x);
+	min.x = std::max(minabs.x, maxabs.x) * -1;
+	max.y = std::max(minabs.y, maxabs.y);
+	min.y = std::max(minabs.y, maxabs.y) * -1;
+
+	
+	//static Coord largestSpan{ 0, 0 };
+	span = (max - min) + 1;
+
+	//largestSpan.x = span.x > largestSpan.x ? span.x : largestSpan.x;
+	//largestSpan.y = span.y > largestSpan.y ? span.y : largestSpan.y;
+
+	// Want to keep the origin at the centre really
+	span = { 301, 161 };
+	min.x = -150;
+	min.y = -80;
+	max.x = 150;
+	max.y = 80;
+
+	if (++calls < 500)
 	{
-		spaces += ' ';
-	}
-	for (int i{ 0 }; i < newLinesCount - 1; ++i)
-	{
-		spaces += '\n';
+		std::string imagename{ "./images/rope/rope_" + std::to_string(calls) + ".bmp" };
+		Image bmp{ span.x, span.y };
+
+		std::cout << imagename << " = span: " << span << '\n';
+
+		for (int y{ 0 }; y < span.y; ++y)
+		{
+			int originx{ 0 - min.x };
+			bmp.setColor(Color{ 0.f, 0.f, 0.25f }, originx, y);
+		}
+
+		for (int x{ 0 }; x < span.x; ++x)
+		{
+			int originy{ 0 - min.y };
+			bmp.setColor(Color{ 0.f, 0.f, 0.25f }, x, originy);
+		}
+
+		for (int i{ 0 }; &(head[i]) != end; ++i)
+		{
+			auto pixel{ head[i] - min };
+			std::cout << pixel << ' ';
+			if (pixel.x < 0 || pixel.y < 0 || pixel.x >= span.x || pixel.y >= span.y)
+			{
+				continue;
+			}
+			bmp.setColor(Color{ 1.f, 0.f, 0.f }, pixel.x, pixel.y);
+		}
+		std::cout << '\n';
+
+		bmp.save(imagename.data());
+
+		// std::cout << imagename << " should have " << span << " pixels\n";
+
 	}
 
-	if (tail.y > head.y)
-	{
-		if (tail.x < head.x)
-		{
-			std::cout << 'T' << newlines << spaces << 'H';
-		}
-		else
-		{
-			std::cout << spaces << 'T' << newlines << 'H';
-		}
-	}
-	else
-	{
-		if (tail.x < head.x)
-		{
-			std::cout<< spaces << 'H' << newlines << 'T';
-		}
-		else
-		{
-			std::cout << 'H' << newlines << spaces << 'T';
-		}
-	}
 
-	std::cout << '\n';
+//	std::cout << "largestspan " << largestSpan << '\n';
+	
 
 }
 
@@ -326,7 +361,7 @@ namespace Puzzle2
 			throw std::runtime_error("could not open " + infile);
 		}
 
-		std::array<Coord, 10> rope;
+		Rope rope;
 		std::set<Coord> visited{ rope[0] };
 
 		while(inf)
@@ -337,15 +372,20 @@ namespace Puzzle2
 
 			while (moves.second)
 			{
-				if (moveRope(rope.begin(), rope.end(), moves.first))
+				// absurd
+				auto ptr{ rope.end() - 1 };
+				auto &val{ *ptr };
+				auto* ptr2{ &val };
+				// refactor to use iterators instead
+				if (moveRope(&(*rope.begin()), ++ptr2, moves.first))
 				{
 					visited.insert(*rope.rbegin());
 				}
 
 				--moves.second;
 
-				// This is drawing far too many lines...
-				drawRope(rope.begin(), rope.end());
+				// Careful uncommenting this, it creates a series of bitmaps!
+				// drawRope(&(*rope.begin()), ptr2);
 			}
 		}
 
@@ -373,7 +413,7 @@ namespace Puzzle2
 
 		// std::cout << "Span: " << span << '\n';
 
-		// std::cout << "Unique spaces visited by tail of 10 Planck length rope: " << visited.size() << '\n';
+		std::cout << "Unique spaces visited by tail of 10 Planck length rope: " << visited.size() << '\n';
 	}
 };
 
@@ -382,9 +422,24 @@ int main()
 	const std::string input{ utils::getFilePath(__FILE__) };
 
 	// Puzzle1::solve(input); 
-	// Puzzle2::solve(input);
+	Puzzle2::solve(input);
 	
-	createBitMap();
+	// createBitMap();
+
+	//const int width = 640;
+	//const int height = 480;
+
+	//Image image(width, height);
+
+	//for (int y{ 0 }; y < height; ++y)
+	//{
+	//	for (int x{ 0 }; x < width; ++x)
+	//	{
+	//		image.setColor(Color((float)x / (float)width, 1.0f - ((float)x / (float)width), (float)y / (float)height), x, y);
+	//	}
+	//}
+
+	//image.save("thisimage.bmp");
 
 	return 0;
 }

@@ -120,4 +120,12 @@ namespace utils
         return buffer;
     }
 
+    // Uses an out parameter to behave like std::getline. Discards lines until a condition is met
+    void skipLinesUntil(std::ifstream &inf, std::string &line, bool (*condition) (const std::string&))
+    {
+        do
+        {
+			std::getline(inf, line);
+        } while (!condition(line));
+    }
 };
