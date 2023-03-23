@@ -49,8 +49,7 @@ public:
 		}
 	}
 
-	// static constexpr std::string_view choicestr(Choice choice)
-	static constexpr std::string choicestr(Choice choice)
+	static const std::string choicestr(Choice choice)
 	{
 		switch (choice)
 		{
