@@ -1,9 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <chrono> // for std::chrono functions
 #include <exception>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -120,6 +122,28 @@ namespace utils
         return buffer;
     }
 
+    std::vector<std::string> bufferLinesIf(const std::string &file, bool (*condition)(const std::string&))
+    {
+        std::ifstream inf{ file }; 
+        if (!inf.good())
+        {
+            throw std::runtime_error{ "Could not open file: " + file };
+        }
+        std::vector<std::string> buffer;
+
+        while(inf)
+        {
+            std::string line;
+            std::getline(inf, line);
+            if (condition(line))
+            {
+                buffer.push_back(line);
+            }
+        }
+
+        return buffer;
+    }
+
     // Uses an out parameter to behave like std::getline. Discards lines until a condition is met
     void skipLinesUntil(std::ifstream &inf, std::string &line, bool (*condition) (const std::string&))
     {
@@ -127,5 +151,58 @@ namespace utils
         {
 			std::getline(inf, line);
         } while (!condition(line));
+    }
+
+    std::vector<std::string> getLinesUntil(std::ifstream &inf, bool (*condition) (const std::string&))
+    {
+        std::vector<std::string> block;
+        do
+        {
+            block.push_back("");
+			std::getline(inf, block.back());
+        } while (!condition(block.back()));
+        return block;
+    }
+
+    std::vector<std::string> split(const std::string &str, const std::string &splitOn)
+    {
+        std::vector<std::string> list;
+
+        if (splitOn.length() == 0)
+        {
+            std::cerr << ("utils::split called with empty split string\n");
+            return list;
+        }
+
+        auto begin{ str.begin() };
+        while (begin < str.end())
+        {
+            auto match{ std::search(begin, str.end(), splitOn.begin(), splitOn.end()) };
+
+            list.push_back( std::string{ begin, match } );
+            begin = match + static_cast<int>(splitOn.length());
+
+        }
+        return list;
+    }
+
+    void doOnSplit(const std::string &str, const std::string &splitOn, std::function<void(const std::string&)>fnc)
+    {
+        if (splitOn.length() == 0)
+        {
+            std::cerr << ("utils::split called with empty split string\n");
+            return;
+        }
+
+        auto begin{ str.begin() };
+        while (begin < str.end())
+        {
+            auto match{ std::search(begin, str.end(), splitOn.begin(), splitOn.end()) };
+
+            fnc(std::string{ begin, match });
+
+            begin = match + static_cast<int>(splitOn.length());
+
+        }
     }
 };

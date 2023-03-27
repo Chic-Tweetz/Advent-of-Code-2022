@@ -125,14 +125,10 @@ namespace Puzzle2
 				addqueue = 0;
 			}
 
-			
-
 			// Cycle End
 			x += addnext;
-
-			
-			
 		}
+		
 		std::cout << '\n';
 		
 	}
