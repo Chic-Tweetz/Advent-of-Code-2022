@@ -1,10 +1,12 @@
-// Copy and paste for each day for a quick start
+// At some point I started causing seg faults
 
 // #define DEBUG
 // #define TESTINPUT
 
+bool bPrint{ false };
+
 #ifdef DEBUG
-#  define DPRINT(x) std::cout << x
+#  define DPRINT(x) if (bPrint) { std::cout << x; }
 #  define DERR(x) std::cerr << x
 #else
 #  define DPRINT(x)
@@ -23,200 +25,99 @@
 
 #include "utils.h"
 
-std::string_view dig(std::string_view left/*, const int depth = 0*/)
+// Find the next comma and return a string starting from the following char
+std::string_view next(std::string_view in)
 {
-	if (left[0] != '[')
+	if (in[0] == '[')
 	{
-		return left;
+		return std::string_view{ in.data() + 1, in.length() - 1 };
 	}
 
-	size_t start{ 1 };
-	size_t length{ 0 };
-	int brackets{ 1 };
-	size_t closeBracket{ 1 };
-
-	while (closeBracket < left.length())
-	// for (size_t i{ 0 }; i < left.length(); ++i)
+	if (auto newStart{ in.find(',') }; newStart != std::string::npos)
 	{
-		if (left[closeBracket] == '[')
-		{
-			++brackets;
-		}
-		else if (left[closeBracket] == ']' && --brackets == 0)
-		{
-			length = closeBracket - start;
-			break;
-		}
-		++closeBracket;
+		++newStart;
+		auto newSv{ std::string_view{ in.data() + newStart, in.length() - newStart } };
+
+		return newSv;
 	}
 
-	return dig( { left.data() + start, length } );
+	return std::string_view(in.data(), 0 );
 }
 
-std::vector<std::string_view> split(std::string_view str)
-{	
-	std::vector<std::string_view> list;
-
-	int brackets{ 0 };
-	size_t start{ 0 };
-
-	for (size_t i{ 0 }; i < str.length(); ++i)
-	{
-		if (str[i] == '[')
-		{
-			if (++brackets == 1)
-			{
-				start = i;
-			}
-		}
-
-		else if (str[i] == ']' && !(--brackets))
-		{	
-			list.push_back( std::string_view {
-				str.data() + start, i - start + 1
-			});
-
-			if (str[i + 1] == ',')
-			{
-				start = i + 2;
-				++i;
-			}
-
-			start = i + 1;
-		}
-		else if (!brackets && str[i] == ',')
-		{
-			list.push_back( std::string_view {
-				str.data() + start, i - start
-			});
-
-			start = i + 1;
-		}
-		else if (i == str.length() - 1)
-		{	
-			list.push_back( std::string_view {
-				str.data() + start, str.length() - start
-			});
-		}
-	}
-
-	return list;
-} 
-
-int compare(int left, int right)
+std::strong_ordering compareUnlike(std::string_view list, std::string_view num)
 {
-	if (left < right)
+	// Move through the string to find a number rather than a list
+	const auto listNumInd{ list.find_first_not_of('[') };
+
+	// List was empty ( ie "[]" )
+	if (list[listNumInd] == ']')
 	{
-		return 1;
+		return std::strong_ordering::less;
 	}
-	if (left > right)
+
+	if (auto comp{ std::atoi(list.data() + listNumInd) <=> std::atoi(num.data()) }; comp != 0)
 	{
-		return -1;
+		return comp;
 	}
-	return 0;
+
+	// List has more items
+	if (list.find(',') != std::string::npos)
+	{
+		return std::strong_ordering::greater;
+	}
+
+	// List has no more items
+	return std::strong_ordering::less; 
 }
 
-int compare(std::vector<std::string_view> left, std::vector<std::string_view> right, const int depth = 0)
+std::strong_ordering compareItems(std::string_view left, std::string_view right)
 {
-	for (size_t i{ 0 }; i < std::max(left.size(), right.size()); ++i)
+	// List vs number
+	if (left[0] == '[' && right[0] != '[')
 	{
-		for (int j{ 0 }; j < depth; ++j)
-		{
-			DPRINT(" ");
-		}
-		if (i >= left.size())
-		{
-			DPRINT("- Left side ran out of items, so inputs are in the right order\n");
-			return 1;
-		}
-		if (i >= right.size())
-		{
-			DPRINT("- Right side ran out of items, so inputs are not in the right order\n");
-			return -1;
-		}
-		DPRINT("- Compare " << left[i] << " vs " << right[i] << '\n');
-		// l & l
-		if (left[i][0] == '[' && right[i][0] == '[')
-		{
-			auto leftSplit{ split(std::string_view{ left[i].data() + 1, left[i].length() - 2 }) };
-			auto rightSplit{ split(std::string_view{ right[i].data() + 1, right[i].length() - 2 }) };
-			
-			auto innerComp{ compare(leftSplit, rightSplit, depth + 1) };
-			if (innerComp != 0) 
-			{
-				return innerComp;
-			}
-		}
-		// i & i
-		else if (!(left[i][0] == '[') && !(right[i][0] == '['))
-		{
-			if (std::atoi(left[i].data()) < std::atoi(right[i].data()))
-			{
-				for (int j { 0 }; j <= depth; ++j)
-				{
-					DPRINT("  ");
-				}
-				DPRINT("- Left side is smaller, so inputs are in the RIGHT order");
-				return 1;
-			}
-			if (std::atoi(left[i].data()) > std::atoi(right[i].data()))
-			{
-				for (int i { 0 }; i <= depth; ++i)
-				{
-					DPRINT("  ");
-				}
-				DPRINT("- Right side is smaller, so inputs are in the WRONG order");
-				return -1;
-			}
-			continue;
-		}
-		// l & i
-		else if (left[i][0] == '[')
-		{
-			for (int j { 0 }; j <= depth; ++j)
-				{
-					DPRINT("  ");
-				}
-			DPRINT("- Mixed types; convert right to [" << right[i] << "] and retry comparison\n");
-			
-			std::string convert{ "[" + std::string{ right[i] } + "]" };
-			std::vector<std::string_view> rightcopy{ right.begin() + static_cast<int>(i), right.end() };
-			rightcopy[0] = convert;
-
-			std::vector<std::string_view> leftcopy{ left.begin() + static_cast<int>(i), left.end() };
-			
-			auto innercomp{ compare(leftcopy, rightcopy, depth + 1) };
-			if (innercomp != 0)
-			{
-				return innercomp;
-			}
-			continue;
-		}
-		// l & i
-		else if (right[i][0] == '[')
-		{
-			for (int j { 0 }; j <= depth; ++j)
-				{
-					DPRINT("  ");
-				}
-			DPRINT("- Mixed types; convert left to [" << left[i] << "] and retry comparison\n");
-			
-			std::string convert{ "[" + std::string{ left[i] } + "]" };
-
-			std::vector<std::string_view> leftcopy{ left.begin() + static_cast<int>(i), left.end() };
-			leftcopy[0] = convert;
-
-			std::vector<std::string_view> rightcopy{ right.begin() + static_cast<int>(i), right.end() };
-			
-			auto innercomp{ compare(leftcopy, rightcopy, depth + 1) };
-			if (innercomp != 0)
-			{
-				return innercomp;
-			}
-			continue;
-		}
+		return compareUnlike(left, right);
 	}
-	return 0; // Lists run out at the same time
+	
+	// Number vs list
+	if (left[0] != '[' && right[0] == '[')
+	{
+		// Flipped for right vs left comparisons
+		return 0 <=> compareUnlike(right, left);
+	}
+
+	// Number vs number
+	return std::atoi(left.data()) <=> std::atoi(right.data());
+}
+
+// I'm sure these ifs and elses can be done better
+std::strong_ordering compareLists(std::string_view left, std::string_view right)
+{
+	// I tried to move this out but you actually do want to return the == 0 here
+	// Run out of items checks - string end:
+	if (left.length() <= 1 || right.length() <= 1)
+	{
+		return left.length() <=> right.length();
+	}
+	// Only left list empty
+	if (left[0] == ']' && right[0] != ']')
+	{
+		return std::strong_ordering::less;
+	}
+	
+	// Only right list empty
+	if (left[0] != ']' && right[0] == ']')
+	{
+		return std::strong_ordering::greater;
+	}
+
+	// Actual comparisons happen here
+	if (const auto comp{ compareItems(left, right) }; comp != 0)
+	{
+		return comp;
+	}
+
+	// If all comparisons have returned 0, move to the next item in the list
+	return compareLists(next(left), next(right));
 }
 
 namespace Puzzle1
@@ -243,15 +144,12 @@ namespace Puzzle1
 			std::getline(inf, discard);
 
 			++count;
-
+			
 			DPRINT("== Pair " << count << " ==\n");
 
-			auto splittyLeft{ split(left) };
-			auto splittyRight{ split (right) };
+			auto comp{ compareLists(left, right) };
 
-			auto comp{ compare(splittyLeft, splittyRight) };
-
-			if (comp == 1)
+			if (comp < 0)
 			{
 				solution += count;
 			}
@@ -293,19 +191,10 @@ namespace Puzzle2
 		lines.push_back("[[6]]");
 
 		std::sort(lines.begin(), lines.end(),
-			[](std::string_view left, std::string_view right)
-			{
-				if (compare(split(left), split(right)) > 0)
-				{
-					return true;
-				}
-				else
-				{
-					return false;
-				}
-			});
-
-		std::cout << '\n' ;
+		[](std::string_view left, std::string_view right)
+		{
+			return compareLists(left, right) < 0;
+		});
 
 		auto divpacket1{ std::find(lines.begin(), lines.end(), "[[2]]") };
 		auto divpacket2{ std::find(lines.begin(), lines.end(), "[[6]]") };
@@ -340,8 +229,8 @@ int main()
 	const std::string input{ utils::getFilePath(__FILE__) };
 #endif
 
-	Puzzle1::solve(input); 
+	Puzzle1::solve(input);
 	Puzzle2::solve(input);
-	
+
 	return 0;
 }
