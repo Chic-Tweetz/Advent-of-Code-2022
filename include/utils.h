@@ -13,22 +13,7 @@
 
 // Debug macros - DPRINT, DPRINTLN can be toggled on or off, DERR prints in RED text :O
 #ifdef DEBUG
-#  ifdef __APPLE__
-#    define DERR(x) std::cerr << "\033[31m" << x << "\033[0m"; 
-
-// Untested (apparently much more required to change text colour on Windows):
-#  elif _WIN32
-#    include <windows.h>
-#    define DERR(x)\
-		{\
-			HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);\
-			CONSOLE_SCREEN_BUFFER_INFO defaultTerminal;\
-			GetConsoleScreenBufferInfo(hStdout, &defaultTerminal);\
-			SetConsoleTextAttribute(hConsole, FOREGROUND_RED);\
-			std::cout << x;\
-			SetConsoleTextAttribute(hConsole, defaultTerminal.wAttributes);\
-		}
-#  endif
+#  define DERR(x) std::cerr << "\033[31m" << x << "\033[0m"; 
 	
 namespace debug
 {
