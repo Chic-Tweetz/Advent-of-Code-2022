@@ -11,8 +11,45 @@
 #include <sstream>
 #include <vector>
 
+// Debug macros - DPRINT, DPRINTLN can be toggled on or off, DERR prints in RED text :O
+#ifdef DEBUG
+#  ifdef __APPLE__
+#    define DERR(x) std::cerr << "\033[31m" << x << "\033[0m"; 
+
+// Untested (apparently much more required to change text colour on Windows):
+#  elif _WIN32
+#    include <windows.h>
+#    define DERR(x)\
+		{\
+			HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);\
+			CONSOLE_SCREEN_BUFFER_INFO defaultTerminal;\
+			GetConsoleScreenBufferInfo(hStdout, &defaultTerminal);\
+			SetConsoleTextAttribute(hConsole, FOREGROUND_RED);\
+			std::cout << x;\
+			SetConsoleTextAttribute(hConsole, defaultTerminal.wAttributes);\
+		}
+#  endif
+	
+namespace debug
+{
+	bool bPrintEnabled{ true }; // Toggle DPRINT when needed
+}
+
+#  define DPRINT(x) if (debug::bPrintEnabled) { std::cout << x; }
+#  define DPRINTLN(x) if (debug::bPrintEnabled) { std::cout << x << '\n'; }
+#  define DTOGGLEPRINT() debug::bPrintEnabled = !debug::bPrintEnabled;
+#  define DSETPRINTENABLED(b) debug::bPrintEnabled = b;
+#else
+#  define DPRINT(x)
+#  define DPRINTLN(x)
+#  define DERR(x)
+#  define DTOGGLEPRINT()
+#  define DSETPRINTENABLED(b)
+#endif
+
 namespace utils
 {
+    // Copied & pasted from learncpp.com
     class Timer
     {
     private:
@@ -39,40 +76,20 @@ namespace utils
             std::cout << "Elapsed: " << time << '\n';
         }
     };
+
     // Pass the __FILE__ macro for the first arg to get files relative to source cpp file dir
+    // I've been using #ifdef TESTINPUT for a few files already so I'll put it here too
+    // Now I'll relax with the preprocessor directives because this is getting out of hand
+#ifdef TESTINPUT
+    // Gets fileDir/input by default or fileDir/test with #TESTINPUT defined
+    const std::string getFilePath(const std::string &srcFilePath, const std::string &fileName = "test")
+#else
+    // Gets fileDir/input by default or fileDir/test with #TESTINPUT defined
     const std::string getFilePath(const std::string &srcFilePath, const std::string &fileName = "input")
+#endif
     {
         return std::filesystem::path{ srcFilePath }.parent_path().append(fileName).string();
     }
-    
-    /* This version tested much slower than the other
-    const std::string bufferInput(const std::string& file)
-    {
-        std::ifstream inf{ file }; // what's the issue?
-        if (!inf.good())
-        {
-            throw std::runtime_error{ "Could not open file: " + file };
-        }
-        
-        // std::string buffer;
-        std::stringstream ss;
-
-        inf.seekg(0, std::ios::end);
-        auto end{ inf.tellg() };
-        // buffer.reserve(inf.tellg());
-        inf.seekg(0, std::ios::beg);
-
-        while(inf.tellg() != end)
-        {
-            ss << static_cast<char> (inf.get());
-            // buffer.push_back(inf.get());
-        }
-
-        // buffer.shrink_to_fit();
-        return ss.str();
-
-    }
-    */
 
     std::string bufferInput(const std::string &file)
     {

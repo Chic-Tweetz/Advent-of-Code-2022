@@ -1,17 +1,6 @@
-// At some point I started causing seg faults
 
-// #define DEBUG
+#define DEBUG
 // #define TESTINPUT
-
-bool bPrint{ false };
-
-#ifdef DEBUG
-#  define DPRINT(x) if (bPrint) { std::cout << x; }
-#  define DERR(x) std::cerr << x
-#else
-#  define DPRINT(x)
-#  define DERR(x)
-#endif
 
 #include <algorithm>
 #include <charconv>
@@ -223,11 +212,7 @@ namespace Puzzle2
 
 int main()
 {
-#ifdef TESTINPUT
-	const std::string input{ utils::getFilePath(__FILE__, "test") };
-#else
 	const std::string input{ utils::getFilePath(__FILE__) };
-#endif
 
 	Puzzle1::solve(input);
 	Puzzle2::solve(input);

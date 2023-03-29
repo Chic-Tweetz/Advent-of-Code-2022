@@ -2,15 +2,6 @@
 // #define TEST_INPUT
 // #define DEBUG
 
-#ifdef DEBUG
-#  define DPRINT(x) std::cout << x
-#  define DERR(x) std::cerr << x
-#else
-#  define DPRINT(x)
-#  define DERR(x)
-#endif
-
-
 #include <deque>
 #include <exception>
 #include <filesystem>
@@ -429,13 +420,7 @@ namespace Puzzle2
 
 int main()
 {
-	
-	#ifdef TEST_INPUT
-	const std::string input{ utils::getFilePath(__FILE__, "test") };
-	#else
 	const std::string input{ utils::getFilePath(__FILE__) };
-	#endif
-
 	
 	auto solution1{ Puzzle1::solve(input) }; 
 	
