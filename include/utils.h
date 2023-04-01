@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <string_view>
 #include <vector>
 
 // Debug macros - DPRINT, DPRINTLN can be toggled on or off, DERR prints in RED text :O
@@ -34,6 +35,18 @@ namespace debug
 
 namespace utils
 {
+    template<typename T>
+    void printAnswer(const T answer, const T correctAnswer, std::string_view flavourStart = "", std::string_view flavourEnd = "")
+    {
+        if (answer == correctAnswer)
+        {
+            std::cout << flavourStart << "\033[32m" << answer << "\033[0m" << flavourEnd << '\n';
+        }
+        else
+        {
+            std::cout << "\033[31m" << answer << "\033[0m" << " is incorrect. Answer is: " << correctAnswer << '\n';
+        }
+    }
     // Copied & pasted from learncpp.com
     class Timer
     {
@@ -74,6 +87,21 @@ namespace utils
 #endif
     {
         return std::filesystem::path{ srcFilePath }.parent_path().append(fileName).string();
+    }
+
+    void forEachLine(const std::string &file, std::function<void(std::string_view)> fnc)
+    {
+        std::ifstream inf{ file }; 
+        if (!inf.good())
+        {
+            throw std::runtime_error{ "Could not open file: " + file };
+        }
+        while (inf)
+        {
+            std::string line;
+            std::getline(inf, line);
+            fnc(line);
+        }
     }
 
     std::string bufferInput(const std::string &file)
@@ -202,6 +230,27 @@ namespace utils
             auto match{ std::search(begin, str.end(), splitOn.begin(), splitOn.end()) };
 
             fnc(std::string{ begin, match });
+
+            begin = match + static_cast<int>(splitOn.length());
+
+        }
+    }
+
+    // I think string_view makes more sense
+    void doOnSplit(std::string_view str, std::string_view splitOn, std::function<void(std::string_view)>fnc)
+    {
+        if (splitOn.length() == 0)
+        {
+            std::cerr << ("utils::split called with empty split string\n");
+            return;
+        }
+
+        auto begin{ str.begin() };
+        while (begin < str.end())
+        {
+            auto match{ std::search(begin, str.end(), splitOn.begin(), splitOn.end()) };
+
+            fnc(std::string_view{ begin, match });
 
             begin = match + static_cast<int>(splitOn.length());
 

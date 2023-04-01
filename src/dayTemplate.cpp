@@ -1,14 +1,7 @@
 // Copy and paste for each day for a quick start
 
 // #define DEBUG
-
-#ifdef DEBUG
-#  define DPRINT(x) std::cout << x
-#  define DERR(x) std::cerr << x
-#else
-#  define DPRINT(x)
-#  define DERR(x)
-#endif
+// #define TESTINPUT
 
 #include <exception>
 #include <filesystem>
@@ -20,7 +13,7 @@
 
 namespace Puzzle1
 {
-	std::string solve(const std::string& infile)
+	void solve(const std::string& infile)
 	{
 		std::ifstream inf { infile };
 
@@ -29,14 +22,12 @@ namespace Puzzle1
 			throw std::runtime_error("could not open " + infile);
 		}
 
-		std::string solution;
-		return solution;
 	}
 };
 
 namespace Puzzle2
 {
-	std::string solve(const std::string& infile)
+	void solve(const std::string& infile)
 	{
 		std::ifstream inf{ infile };
 
@@ -45,8 +36,6 @@ namespace Puzzle2
 			throw std::runtime_error("could not open " + infile);
 		}
 
-		std::string solution;
-		return solution;
 	}
 };
 
