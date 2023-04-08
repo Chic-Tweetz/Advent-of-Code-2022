@@ -47,6 +47,12 @@ namespace utils
             std::cout << "\033[31m" << answer << "\033[0m" << " is incorrect. Answer is: " << correctAnswer << '\n';
         }
     }
+    
+    template<typename T>
+    void printAnswer(const T answer, std::string_view flavourStart = "", std::string_view flavourEnd = "")
+    {
+        std::cout << flavourStart << "\033[32m" << answer << "\033[0m" << flavourEnd << '\n';
+    }
     // Copied & pasted from learncpp.com
     class Timer
     {
