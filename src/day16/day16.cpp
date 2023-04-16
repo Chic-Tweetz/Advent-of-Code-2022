@@ -125,7 +125,6 @@ struct ValvesState
 		auto closedAfter{ closedValves };
 		closedAfter.erase(id);
 
-		// auto valve{ closedValves.find(id) }
 		return { timeAfter,
 		         id,
 				 pressureReleased + release,
@@ -156,22 +155,14 @@ struct ValvesState
 		int potentialRelease{ pressureReleased };
 		for (auto flow : orderedFlows)
 		{
-			// I forgot to decrement time before!
-			// Now we only need 12486 iterations instead of 130000+
-			// So that's nice
 			if ((theoreticalTime -= 2) < 1)
 			{
 				break;
 			}
 
 			potentialRelease += (theoreticalTime) * flow;
-
-			// DPRINT(flow << " ");
 		}
-		// DPRINTLN("");
-
 		
-
 		return potentialRelease;
 	}
 
@@ -207,7 +198,6 @@ struct ValvesStateTwoOpeners : public ValvesState
 
 	ValvesStateTwoOpeners() : ValvesState() { time = startTimeWithElephantHelp; }
 
-	// int time{ startTimeWithElephantHelp };
 	std::string location2{ startValve };
 	std::array<int, 2> extraDistance{ { 0, 0 } };
 
@@ -219,7 +209,8 @@ struct ValvesStateTwoOpeners : public ValvesState
 		if (pressureReleased > bestDuoRelease)
 		{
 			bestDuoRelease = pressureReleased;
-			DPRINTLN(DCOL << "36m" << "new best: " << bestDuoRelease);
+			// Printing a line so I can see something's actually happening!
+			// DPRINTLN(DCOL << "36m" << "new best: " << bestDuoRelease);
 		}
 	}
 
@@ -242,7 +233,6 @@ struct ValvesStateTwoOpeners : public ValvesState
 			}
 		}
 
-
 		int theoreticalTime{ time - leastDist + 1 };
 		int potentialRelease{ pressureReleased };
 		
@@ -257,13 +247,7 @@ struct ValvesStateTwoOpeners : public ValvesState
 			auto first{ *iter };
 			++iter;
 			
-
 			// We'll add the best two * time remaining together (if there are two)
-			// Only use iter if we haven't incremented to end()
-			// potentialRelease += iter != orderedFlows.end()
-			//                     	? (*first + *iter) * theoreticalTime
-		    //                     	: (*first) * theoreticalTime;
-
 			if (iter != orderedFlows.end())
 			{
 				potentialRelease += (first + *iter) * theoreticalTime;
@@ -273,17 +257,18 @@ struct ValvesStateTwoOpeners : public ValvesState
 				potentialRelease += (first) * theoreticalTime;
 				break;
 			}
-
 		}
 
 		return potentialRelease;
 	}
 
+	// This one has an exclude in hopes that my culling can work quicker in tryAll()
 	int perfectConditionsRelease(const std::string &exclude)
 	{
 		int leastDist{ INT_MAX };
 		std::set<int, std::greater<>> orderedFlows;
 
+		// Treat exclude as if it's the current location in a new state
 		for (auto &&valve : closedValves)
 		{
 			if (valve.first == exclude)
@@ -297,12 +282,13 @@ struct ValvesStateTwoOpeners : public ValvesState
 			{
 				leastDist = dist;
 			}
+			// This checks location2, but it could well be location 
+			// we don't check if it's the elephant or the person doing this search
 			if (auto dist{ Valve::dist(location2, valve.first) }; dist < leastDist)
 			{
 				leastDist = dist;
 			}
 		}
-
 
 		int theoreticalTime{ time - leastDist + 1 };
 		int potentialRelease{ pressureReleased };
@@ -318,13 +304,6 @@ struct ValvesStateTwoOpeners : public ValvesState
 			auto first{ *iter };
 			++iter;
 			
-
-			// We'll add the best two * time remaining together (if there are two)
-			// Only use iter if we haven't incremented to end()
-			// potentialRelease += iter != orderedFlows.end()
-			//                     	? (*first + *iter) * theoreticalTime
-		    //                     	: (*first) * theoreticalTime;
-
 			if (iter != orderedFlows.end())
 			{
 				potentialRelease += (first + *iter) * theoreticalTime;
@@ -370,49 +349,37 @@ struct ValvesStateTwoOpeners : public ValvesState
 
 		int timeAfter{ time - timeDecrement };
 
-		// Could represent this with an int (-ve, 0, +ve)
-
-		// Course we actually want this for the next one not this one
-
-		// auto valve{ closedValves.find(id) }
-
-		// Could handle blank ids for new states, but it should only happen at the end anyway
 		ValvesStateTwoOpeners newState{ timeAfter,
 		         id1,
 				 id2,
 				 pressureReleased + release1 + release2,
 				 closedAfter };
 
-		// Struggling to visualise how this goes, so guessing to start with
-
-		// Need to penalise more it seems...
+		// If person/elephant needs more time to reach their valve,
+		// add it to the dist of the next valve they choose
+		// The other will be 0, so we could represent this as a +ve / -ve / 0 value int instead 
 		if (dist1 > dist2)
 		{
-			// newState.extraDistance[0] = dist1 - dist2;
 			newState.extraDistance[0] = extraDistance[0] + dist1 - dist2;
-			// newState.extraDistance[1] = extraDistance[1] - dist1 + dist2;
 		}
 		else if (dist2 > dist1)
 		{
-			// newState.extraDistance[1] = dist2 - dist1;
 			newState.extraDistance[1] = extraDistance[1] + dist2 - dist1;
-			// newState.extraDistance[0] = extraDistance[0] - dist2 + dist1;
 		}
-		else 
-		{
-			// newState.extraDistance[0] = extraDistance[0];
-			// newState.extraDistance[1] = extraDistance[1];
-		}
-		
-		// DPRINTLN(newState.extraDistance[0] << " || " << newState.extraDistance[1]);
 
 		return newState;
-
 	}
 
+#ifdef DEBUG
+	static int iterations;
+#endif
 	// Does find the correct answer after a few minutes
 	int tryAll()
 	{
+#ifdef DEBUG
+		++iterations;
+#endif
+		// Static member bestDuoRelease is reassigned every time a branch gets a higher score
 		if (closedValves.empty() || time < 2)
 		{
 			return bestDuoRelease;
@@ -432,12 +399,10 @@ struct ValvesStateTwoOpeners : public ValvesState
 
 			for (auto &&v2 : closedValves)
 			{
-				// DPRINTLN(v1.first << " && " << v2.first);
 				if (v1.first == v2.first)
 				{
 					continue;
 				}
-
 				open(v1.first, v2.first).tryAll();
 			}
 		}
@@ -447,34 +412,31 @@ struct ValvesStateTwoOpeners : public ValvesState
 
 };
 
-// Out params
+// Adds to lists which are static members of Valve and ValvesState
 void makeValveLists(const std::string& infile)
 {
 	auto valveInfo{ utils::bufferLines(infile) };
+
 	std::map<std::string, std::vector<std::string>> neighbours;
 
 	for (auto &&valve : valveInfo)
 	{
+		// Offset from the start of the line to valve name = 6
 		const std::string tunnelFrom{ valve.data() + 6, valve.data() + 8 };
 
+		// Offset to flow rate = 23
 		if(auto flow{ std::atoi(valve.data() + 23) }; flow > 0 || tunnelFrom == startValve)
 		{
-			// valves[tunnelFrom] = flow;
-			// ValvesState::allValves.insert({ tunnelFrom, flow });
 			ValvesState::addToAllValves(tunnelFrom, flow);
 		} 
 
+		// The last 'e' in the line (in the word "valve" or "valves") precedes a list of neighbours
 		const auto lastE { valve.find_last_of('e') };
 		const auto tunnelListBegin{ valve[lastE + 1] == 's' ? lastE + 3 : lastE + 2 };
 
 		std::string_view tunnelList{ valve.data() + tunnelListBegin, valve.length() - tunnelListBegin };
 		
 		neighbours[tunnelFrom] = utils::split(tunnelList, ", ");
-
-		// utils::doOnSplit(tunnelList, ", ",
-		// [&tunnelFrom, &distances](std::string_view tunnelTo){
-		//     distances[ { tunnelFrom, std::string{ tunnelTo } } ] = 1;
-		// });
 	}
 	
 
@@ -483,10 +445,12 @@ void makeValveLists(const std::string& infile)
 		auto valve{ valveNeighboursPair.first };
 
 		std::map<std::pair<std::string, std::string>, int> valveDists;
-		std::deque<std::string> queue;
-		
-		queue.push_back(valve);
+
+		// Dist from valve to itself = 0
 		valveDists[{ valve, valve }] = 0;
+
+		std::deque<std::string> queue;
+		queue.push_back(valve);
 
 		while (queue.size())
 		{
@@ -513,11 +477,15 @@ void makeValveLists(const std::string& infile)
 	}
 }
 
-
+// Initialise static members out of line
 Valve::valve_dists Valve::distances{ Valve::valve_dists{} };
 ValvesState::valve_cont ValvesState::allValves{ ValvesState::valve_cont{} };
 int ValvesState::bestRelease{ 0 };
-int ValvesStateTwoOpeners::bestDuoRelease{ 2504 };
+int ValvesStateTwoOpeners::bestDuoRelease{ 0 };
+
+#ifdef DEBUG
+int ValvesStateTwoOpeners::iterations{ 0 };
+#endif
 
 // Follow the largest possible releases with no concern for following moves, for a decent baseline
 int chaseLargestReleases()
@@ -559,37 +527,17 @@ namespace Puzzle1
 
 		makeValveLists(infile);
 
-		// for (auto &&v : ValvesState::allValves)
-		// {
-		// 	DPRINTLN(v.first << " = " << v.second.flow);
-		// }
-		// for (auto &&d : Valve::distances)
-		// {
-		// 	DPRINTLN(d.first.a << " to " << d.first.b << " : " << d.second);
-		// }
-
-		// int time{ startTime };
-		// std::string loc{ startValve };
-
-		// Saves a scant few iterations
 		chaseLargestReleases();
 
-		ValvesState vs;
-		// std::cout << vs.perfectConditionsRelease() << '\n';
-
-		// Takes a few seconds but does get the right answer
-		// after ~ 130000 iterations
-		int answer{ vs.tryAll() };
-
+		// 12486 iterations to get answer
+		int answer{ ValvesState{}.tryAll() };
 
 #ifdef TESTINPUT
-		utils::printAnswer(answer, 1651, "Highest possible pressure release: ");
+		utils::printAnswer(answer, 1651, "Highest possible pressure release in 30 minutes: ");
 #else
-		utils::printAnswer(answer, 1716, "Highest possible pressure release: ");
+		utils::printAnswer(answer, 1716, "Highest possible pressure release in 30 minutes: ");
 #endif
 	}
-
-
 };
 
 namespace Puzzle2
@@ -608,37 +556,18 @@ namespace Puzzle2
 
 		makeValveLists(infile);
 
-		// for (auto &&v : ValvesState::allValves)
-		// {
-		// 	DPRINTLN(v.first << " = " << v.second.flow);
-		// }
-		// for (auto &&d : Valve::distances)
-		// {
-		// 	DPRINTLN(d.first.a << " to " << d.first.b << " : " << d.second);
-		// }
-
-		// int time{ startTime };
-		// std::string loc{ startValve };
-
-		// Saves a scant few iterations
-		// chaseLargestReleases();
-
-		ValvesStateTwoOpeners vs;
-		// std::cout << vs.perfectConditionsRelease() << '\n';
-
-		// Takes a few seconds but does get the right answer
-		// after ~ 130000 iterations
-
-		// Well this worked after a few MINUTES
+		// Well this worked after a few MINUTES 
 		// Clearly there's room for improvement here!
-		int answer{ vs.tryAll() };
-
+		int answer{ ValvesStateTwoOpeners{}.tryAll() };
 
 #ifdef TESTINPUT
 		utils::printAnswer(answer, 1707);
 #else
 		utils::printAnswer(answer, 2504);
 #endif
+
+		// 10349731 Iterations (part 1 took 12486!)
+		DPRINTLN("This took " << ValvesStateTwoOpeners::iterations << " iterations!");
 	}
 };
 
