@@ -20,9 +20,16 @@ namespace debug
 {
 	bool bPrintEnabled{ true }; // Toggle DPRINT when needed
 }
+#  define DRESET "\033[0m"
+#  define DRED "\033[31m"
+#  define DGREEN "\033[32m"
+#  define DYELLOW "\033[33m"
+#  define DBLUE "\033[34m"
+#  define DCOL "\033["
 
 #  define DPRINT(x) if (debug::bPrintEnabled) { std::cout << x; }
 #  define DPRINTLN(x) if (debug::bPrintEnabled) { std::cout << x << '\n'; }
+
 #  define DTOGGLEPRINT() debug::bPrintEnabled = !debug::bPrintEnabled;
 #  define DSETPRINTENABLED(b) debug::bPrintEnabled = b;
 #else
@@ -201,6 +208,28 @@ namespace utils
     }
 
     std::vector<std::string> split(const std::string &str, const std::string &splitOn)
+    {
+        std::vector<std::string> list;
+
+        if (splitOn.length() == 0)
+        {
+            std::cerr << ("utils::split called with empty split string\n");
+            return list;
+        }
+
+        auto begin{ str.begin() };
+        while (begin < str.end())
+        {
+            auto match{ std::search(begin, str.end(), splitOn.begin(), splitOn.end()) };
+
+            list.push_back( std::string{ begin, match } );
+            begin = match + static_cast<int>(splitOn.length());
+
+        }
+        return list;
+    }
+
+    std::vector<std::string> split(std::string_view str, const std::string &splitOn)
     {
         std::vector<std::string> list;
 
