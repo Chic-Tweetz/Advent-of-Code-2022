@@ -1,3 +1,5 @@
+// --- Day 7: No Space Left On Device ---
+
 #include <algorithm>
 #include <array>
 #include <exception>
@@ -6,7 +8,9 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <utility>
 
+#include "debug.h"
 #include "utils.h"
 
 class DirTree
@@ -65,7 +69,7 @@ public:
         }
     }
 
-    void sumPuzzleDirsBelow(int limit = 100000) const
+    int sumPuzzleDirsBelow(int limit = 100000) const
     {
         int acc{ 0 };
         for (auto & dir : m_allDirectories)
@@ -78,12 +82,14 @@ public:
             }
             // std::cout << '\n';
         }
-        std::cout << "Sum of directory sizes of at most " << limit << ": " << acc << '\n';
+        // std::cout << "Sum of directory sizes of at most " << limit << ": " << acc << '\n';
+        return acc;
     }
 
-    void chooseDirectoryToDelete(const int totalStorage = 70000000, const int requiredStorage = 30000000) const
+    std::pair<std::string, int> chooseDirectoryToDelete(const int totalStorage = 70000000, const int requiredStorage = 30000000) const
     {
-        std::cout << "Storage used: " << m_root->size;
+        // std::cout << "Storage used: " << m_root->size;
+        DL("storage used:     " << m_root->size) 
 
         const int freeStorage{ totalStorage - m_root->size };
         const int storageToFree{ requiredStorage - freeStorage };
@@ -92,13 +98,14 @@ public:
             [storageToFree](const Dir* const a, const Dir* const b)
             {
                 return a->size < b->size && a->size > storageToFree;
-            }) 
-            };
+            })};
 
-        std::cout << ", free: " << freeStorage << '\n'
-            << "amount to delete: " << storageToFree << '\n' 
-            << "Dir choice: " << (*minDir)->name 
-            << ", with size: " << (*minDir)->size << '\n';
+        DL("free space:       " << freeStorage);
+        DL("amount to delete: " << storageToFree)
+        DL("dir choice:       " << (*minDir)->name);
+        DL("with size:        " << (*minDir)->size);
+
+        return { (*minDir)->name, (*minDir)->size };
     }
     
 private:
@@ -258,7 +265,8 @@ namespace Puzzle1
             }
         }
 
-        root.sumPuzzleDirsBelow(100000);
+        auto answer{ root.sumPuzzleDirsBelow(100000) };
+        utils::printAnswer("sum of directory sizes of at most 100000: ", answer);
     
 	}
 };
@@ -287,17 +295,28 @@ namespace Puzzle2
             }
         }
 
-        root.chooseDirectoryToDelete(70000000, 30000000);
+        auto answer { root.chooseDirectoryToDelete(70000000, 30000000) };
+        utils::printAnswer("delete dir " + answer.first + " with a size of ", answer.second);
     
 	}
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
+	flags::set(argc, argv);
 
-	Puzzle1::solve(input); 
-	Puzzle2::solve(input);
-	
+	const std::string input{ utils::inputFile(__FILE__) };
+
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
 	return 0;
-}   
+
+}

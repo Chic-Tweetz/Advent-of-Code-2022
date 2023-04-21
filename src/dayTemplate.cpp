@@ -1,14 +1,13 @@
 // Copy and paste for each day for a quick start
 
-// #define DEBUG
-// #define TESTINPUT
-
 #include <exception>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
 
+#include "debug.h"	// Enable debug macros with -d flag
+#include "log.h"	// Enable with -l flag
 #include "utils.h"
 
 namespace Puzzle1
@@ -22,7 +21,10 @@ namespace Puzzle1
 			throw std::runtime_error("could not open " + infile);
 		}
 
+		utils::printAnswer();
+
 	}
+
 };
 
 namespace Puzzle2
@@ -36,15 +38,27 @@ namespace Puzzle2
 			throw std::runtime_error("could not open " + infile);
 		}
 
+		utils::printAnswer();
+
 	}
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
+	flags::set(argc, argv);
 
-	Puzzle1::solve(input); 
-	Puzzle2::solve(input);
-	
+	const std::string input{ utils::inputFile(__FILE__) };
+
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
 	return 0;
+
 }

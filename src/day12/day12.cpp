@@ -1,7 +1,4 @@
-// Copy and paste for each day for a quick start
-
-#define DEBUG
-// #define TESTINPUT
+// --- Day 12: Hill Climbing Algorithm ---
 
 #include <array>
 #include <deque>
@@ -192,20 +189,8 @@ namespace Puzzle1
 
 		auto solution{ grid.startToEnd() };
 
-		std::cout << solution << '\n';
+		utils::printAnswer("shortest path from start to goal: ", solution);
 
-#ifdef TESTINPUT
-		if (solution == 31)
-#else
-		if (solution == 420)
-#endif
-		{
-			std::cout << "CORRECT\n\n";
-		}
-		else
-		{
-			std::cout << "INCORRECT\n\n";
-		}
 	}
 };
 
@@ -217,29 +202,27 @@ namespace Puzzle2
 
 		auto solution{ grid.shortestPathFromGoalToLow() };
 
-		std::cout << solution << '\n';
+		utils::printAnswer("shortest path from goal to low point: ", solution);
 
-#ifdef TESTINPUT
-		if (solution == 29)
-#else
- 		if (solution == 414)
-#endif
-		{
-			std::cout << "CORRECT\n\n";
-		}
-		else
-		{
-			std::cout << "INCORRECT\n\n";
-		}
 	}
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
+	flags::set(argc, argv);
 
-	Puzzle1::solve(input); 
-	Puzzle2::solve(input);
+	const std::string input{ utils::inputFile(__FILE__) };
+
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
 
 	return 0;
+
 }

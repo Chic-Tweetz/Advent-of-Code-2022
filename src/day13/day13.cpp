@@ -1,6 +1,4 @@
-
-#define DEBUG
-// #define TESTINPUT
+// --- Day 13: Distress Signal ---
 
 #include <algorithm>
 #include <charconv>
@@ -12,6 +10,7 @@
 #include <string>
 #include <string_view>
 
+#include "debug.h"
 #include "utils.h"
 
 // Find the next comma and return a string starting from the following char
@@ -134,7 +133,7 @@ namespace Puzzle1
 
 			++count;
 			
-			DPRINT("== Pair " << count << " ==\n");
+			DP("== Pair " << count << " ==\n");
 
 			auto comp{ compareLists(left, right) };
 
@@ -143,23 +142,11 @@ namespace Puzzle1
 				solution += count;
 			}
 
-			DPRINT("\n\n");
+			DP("\n\n");
 		}
 
-		std::cout << "Sum of indices of correctly ordered lists: " << solution << '\n'; 
+		utils::printAnswer("sum of indices of correctly ordered lists: ", solution);
 
-#ifdef TESTINPUT
-		if (solution == 13)
-#else
-		if (solution == 5393)
-#endif
-		{
-			std::cout << "CORRECT\n";
-		}
-		else
-		{
-			std::cout << "INCORRECT\n";
-		}
 	}
 };
 
@@ -193,29 +180,26 @@ namespace Puzzle2
 
 		auto solution { divp1index * divp2index };
 
-		std::cout << "Product of indices of sorted divider packets: " << solution << '\n';
-
-#ifdef TESTINPUT
-		if (solution == 140)
-#else
-		if (solution == 26712)
-#endif
-		{
-			std::cout << "CORRECT\n";
-		}
-		else
-		{
-			std::cout << "INCORRECT\n";
-		}
+		utils::printAnswer("product of indices of sorted divider packets: ", solution);
 	}
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
+	flags::set(argc, argv);
 
-	Puzzle1::solve(input);
-	Puzzle2::solve(input);
+	const std::string input{ utils::inputFile(__FILE__) };
+
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
 
 	return 0;
+
 }

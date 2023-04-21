@@ -1,4 +1,4 @@
-// Copy and paste for each day for a quick start
+// --- Day 8: Treetop Tree House ---
 
 #include <array>
 #include <exception>
@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "debug.h"
 #include "utils.h"
 
 void checkRow(const std::vector<std::string> &map, std::vector<std::vector<bool>> &visibility, const size_t row)
@@ -125,25 +126,24 @@ namespace Puzzle1
         for (size_t row{ 0 }; row < trees.size(); ++row)
         {
             checkRow(trees, treeVisibility, row);
-            // std::cout << trees[row] << '\n';
-
 
             for (size_t i{ 0 }; i < treeVisibility[0].size(); ++i)
             {
                 if (treeVisibility[row][i])
                 {
                     ++count;
-                    std::cout << trees[row][i];
+                    DP(trees[row][i]);
                 }
                 else
                 {
-                    std::cout << ' ';
+                    DP(' ');
                 }
             }
-            std::cout << "\n";
+            DL("");
 
         }
-        std::cout << "\nTotal visible trees: " << count << '\n';
+        
+        utils::printAnswer("total visible trees: ", count);
 
 	}
 };
@@ -298,17 +298,6 @@ namespace Puzzle2
         const TreeMap trees{ utils::bufferLines(infile) };
 
         int highScore{ 0 };
-        // for (size_t row{ 0 }; row < trees.size(); ++row)
-        // {
-        //     for (size_t tree{ 0 }; tree < trees[0].length(); ++tree)
-        //     {
-        //         auto score{ treeScore(trees, row, tree) };
-        //         highScore = score > highScore ? score : highScore;
-        //     }
-        // }
-
-        // std::cout << "Best tree score: " << highScore << '\n';
-
 
         for (auto rowiter{ trees.begin() }; rowiter != trees.end(); ++rowiter)
         {
@@ -319,17 +308,27 @@ namespace Puzzle2
             }
         }
         
-        std::cout << "Best tree score (iterators) wow it worked: " << highScore << '\n';
+        utils::printAnswer("best tree score: ", highScore);
 
 	}
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
+	flags::set(argc, argv);
 
-	Puzzle1::solve(input); 
-	Puzzle2::solve(input);
-	
+	const std::string input{ utils::inputFile(__FILE__) };
+
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
 	return 0;
+
 }

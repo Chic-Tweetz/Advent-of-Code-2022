@@ -1,3 +1,5 @@
+// --- Day 5: Supply Stacks ---
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -88,14 +90,17 @@ namespace Day5
 	
     }
 
-    void printTopCrates(const CrateStacksType &crates)
+    std::string getTopCrates(const CrateStacksType &crates)
     {
-        std::cout << "Top crates: \n";
+        // std::cout << "Top crates: \n";
+		std::string topCrates{};
         for (auto& stack : crates)
         {
-            std::cout << stack.front();
+			topCrates += stack.front();
+            // std::cout << stack.front();
         }
-        std::cout << '\n';
+		return topCrates;
+        // std::cout << '\n';
     }
 };
 
@@ -144,7 +149,8 @@ namespace Puzzle1
 			std::getline(inf, instr);
 		}
 
-		printTopCrates(crates);
+		auto answer{ getTopCrates(crates) };
+		utils::printAnswer("top crates: ", answer, "");
 	}
 };
 
@@ -198,16 +204,27 @@ namespace Puzzle2
 			std::getline(inf, instr);
 		}
 
-		printTopCrates(crates);
+		auto answer{ getTopCrates(crates) };
+		utils::printAnswer("top crates: ", answer, "");
 	}
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
+	flags::set(argc, argv);
 
-    Puzzle1::solve(input); 
-	Puzzle2::solve(input);
-	
+	const std::string input{ utils::inputFile(__FILE__) };
+
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
 	return 0;
+
 }

@@ -1,6 +1,4 @@
-
-#define TESTINPUT
-// #define DEBUG
+// --- Day 14: Regolith Reservoir ---
 
 #include <exception>
 #include <filesystem>
@@ -196,11 +194,7 @@ namespace Puzzle1
             ++unitsOfSand;
         }
 
-#ifdef TESTINPUT
-        utils::printAnswer(unitsOfSand, 24, "Total of: ", " units of sand before abyssal fall");
-#else
-        utils::printAnswer(unitsOfSand, 728, "Total of: ", " units of sand before abyssal fall");
-#endif
+        utils::printAnswer("Total of: ", unitsOfSand, " units of sand before abyssal fall");
 
 	}
 };
@@ -306,21 +300,27 @@ namespace Puzzle2
             ++unitsOfSand;
         }
 
-#ifdef TESTINPUT
-        utils::printAnswer(unitsOfSand, 93, "Total of: ", " units of sand before cave is full");
-#else
-        utils::printAnswer(unitsOfSand, 27623, "Total of: ", " units of sand before cave is full");
-#endif
+        utils::printAnswer("Total of: ", unitsOfSand, " units of sand before cave is full");
 
     }
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
+	flags::set(argc, argv);
 
-	Puzzle1::solve(input); 
-	Puzzle2::solve(input);
-	
+	const std::string input{ utils::inputFile(__FILE__) };
+
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
 	return 0;
+
 }

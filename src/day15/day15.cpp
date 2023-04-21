@@ -1,6 +1,4 @@
-
-// #define DEBUG
-// #define TESTINPUT
+// --- Day 15: Beacon Exclusion Zone ---
 
 #include <array>
 #include <algorithm>
@@ -15,6 +13,7 @@
 #include <string_view>
 #include <utility>
 
+#include "debug.h"
 #include "utils.h"
 
 struct Coord // I keep making Coord structs. Why don't I just copy and paste?!
@@ -186,20 +185,20 @@ public:
 
     void insert(MinMax insertion)
     { 
-        DPRINTLN("Inserting: " << insertion);
+        DL("Inserting: " << insertion);
         // Expand ranges when inserting an overlapping range
         auto erase{ std::remove_if(m_ranges.begin(), m_ranges.end(),
             [&insertion](auto &&existing)
             {
                 if (existing.overlaps(insertion))
                 {
-                    DPRINT("removing: " << existing << ", expanding range: "); 
+                    DP("removing: " << existing << ", expanding range: "); 
 
                     // Update min / max ranges when overlaps occur 
                     insertion.min = std::min(insertion.min, existing.min);
                     insertion.max = std::max(insertion.max, existing.max);
 
-                    DPRINTLN(insertion);
+                    DL(insertion);
 
                     return true;
                 }
@@ -263,11 +262,7 @@ int numberFromInput(std::string_view line, const size_t index = 11)
 
 void parseInput(std::string_view line, MinMaxRanges &coverage)
 {
-    #ifdef TESTINPUT
-    const Coord::type rowToCheck{ 10 };
-    #else
-    const Coord::type rowToCheck{ 2000000 };
-    #endif
+    const Coord::type rowToCheck{ flags::isSet(flags::Flag::test) ? 10 : 2000000 };
 
     const Coord sensor{ line };
     const Coord beacon{ line, true };
@@ -290,7 +285,7 @@ void parseInput(std::string_view line, MinMaxRanges &coverage)
     }
 
 
-    DPRINTLN("parsed: " << sensor << ", " << beacon);
+    DL("parsed: " << sensor << ", " << beacon);
 
     coverage.insert(MinMax{ sensor.x - excessCoverage, sensor.x + excessCoverage });
 
@@ -311,7 +306,7 @@ struct Sensor
     
         radius = Coord::dist(location, beacon);
 
-        DPRINTLN(location << ", radius: " << radius);
+        DL(location << ", radius: " << radius);
     }
     Coord location;
     Coord::type radius;
@@ -328,11 +323,7 @@ class SensorList
     std::vector<Sensor> m_sensors;
     const Coord lowerBound{ 0, 0 };
 
-#ifdef TESTINPUT
-    const Coord upperBound{ 20, 20 };
-#else
-    const Coord upperBound{ 4000000, 4000000 };
-#endif
+    const Coord upperBound{ flags::isSet(flags::Flag::test) ? Coord{ 20, 20 } : Coord{ 4000000, 4000000 } };
 
 public:
     void insert(const Sensor& sensor)
@@ -354,7 +345,7 @@ public:
         {
             auto checkingSensor{ *iter1 };
 
-            DPRINTLN("SENSOR checking: " << checkingSensor.location << " rad: " << checkingSensor.radius);
+            DL("SENSOR checking: " << checkingSensor.location << " rad: " << checkingSensor.radius);
 
             const Coord left{ checkingSensor.location.x - checkingSensor.radius - 1, checkingSensor.location.y };
             const Coord top{ checkingSensor.location.x, checkingSensor.location.y + checkingSensor.radius + 1 };
@@ -390,12 +381,12 @@ public:
                     // But this doesn't work for the non-test input so there must be edge cases or something idk!
                     if (auto sensorDist{ sensorComp.location.dist(check) }; sensorDist <= sensorComp.radius)
                     {
-                        // DPRINTLN("Collision with " << sensorComp.location << ", r: " << sensorComp.radius << " at " << check);
+                        // DL("Collision with " << sensorComp.location << ", r: " << sensorComp.radius << " at " << check);
                         
                         // This line is the skip that breaks it (but not for the test input):
                         // check += directions[0] * sensorDist;
 
-                        // DPRINTLN("Skipping to " << check);
+                        // DL("Skipping to " << check);
                         bOverlapped = true;
                         break;
                     }
@@ -409,7 +400,7 @@ public:
                     return check;
                 }
 
-                DPRINTLN("left-top: " << check);
+                DL("left-top: " << check);
                 check += directions[0];
 
             }
@@ -434,9 +425,9 @@ public:
 
                     if (auto sensorDist{ sensorComp.location.dist(check) }; sensorDist <= sensorComp.radius)
                     {
-                        // DPRINTLN("Collision with " << sensorComp.location << ", r: " << sensorComp.radius << " at " << check);
+                        // DL("Collision with " << sensorComp.location << ", r: " << sensorComp.radius << " at " << check);
                         // check += directions[1] * sensorDist;
-                        // DPRINTLN("Skipping to " << check);
+                        // DL("Skipping to " << check);
                         bOverlapped = true;
                         break;
                     }
@@ -450,7 +441,7 @@ public:
                     return check;
                 }
 
-                DPRINTLN("top-right: " << check);
+                DL("top-right: " << check);
                 check += directions[1];
             }
 
@@ -472,9 +463,9 @@ public:
 
                     if (auto sensorDist{ sensorComp.location.dist(check) }; sensorDist <= sensorComp.radius)
                     {
-                        // DPRINTLN("Collision with " << sensorComp.location << ", r: " << sensorComp.radius << " at " << check);
+                        // DL("Collision with " << sensorComp.location << ", r: " << sensorComp.radius << " at " << check);
                         // check += directions[2] * sensorDist;
-                        // DPRINTLN("Skipping to " << check);
+                        // DL("Skipping to " << check);
                         bOverlapped = true;
                         break;
                     }
@@ -486,7 +477,7 @@ public:
                     return check;
                 }
 
-                DPRINTLN("right-bottom: " << check);
+                DL("right-bottom: " << check);
                 check += directions[2];
             }
                 
@@ -507,9 +498,9 @@ public:
                     auto sensorComp{ *iter2 };
                     if (auto sensorDist{ sensorComp.location.dist(check) }; sensorDist <= sensorComp.radius)
                     {
-                        // DPRINTLN("Collision with " << sensorComp.location << ", r: " << sensorComp.radius << " at " << check);
+                        // DL("Collision with " << sensorComp.location << ", r: " << sensorComp.radius << " at " << check);
                         // check += directions[3] * sensorDist;
-                        // DPRINTLN("Skipping to " << check);
+                        // DL("Skipping to " << check);
                         bOverlapped = true;
                         break;
                     }
@@ -522,7 +513,7 @@ public:
                     return check;
                 }
 
-                DPRINTLN("bottom-left: " << check); 
+                DOUT << "bottom-left" << check <<'\n';
                 check += directions[3];
             }
         }
@@ -557,11 +548,7 @@ namespace Puzzle1
 
         coverageMap.printAll();
 
-        #ifdef TESTINPUT
-        utils::printAnswer(coverageMap.calculateCoverage(), 26, "There are ", " positions which cannot be beacons on line 10");
-        #else
-        utils::printAnswer(coverageMap.calculateCoverage(), Coord::type{ 5100463 }, "There are ", " positions which cannot be beacons on line 200000");
-        #endif
+        utils::printAnswer("There are ", coverageMap.calculateCoverage(), " positions which cannot be beacons on line 10");
 
 	}
 };
@@ -598,21 +585,28 @@ namespace Puzzle2
         std::cout << "Distress beacon at: " << sensor << "\n";
         auto frequency{ sensor.x * 4000000 + sensor.y };
         
-        #ifdef TESTINPUT
-        utils::printAnswer( frequency, 56000011 );
-        #else
-        utils::printAnswer( frequency, 11557863040754, "Distress beacon tuning frequency: " ); // Don't know if it's right because no internet
-        #endif
-	}
+        utils::printAnswer("distress beacon tuning frequency: ", frequency );
+    }
+
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
+	flags::set(argc, argv);
 
-	Puzzle1::solve(input); 
-	Puzzle2::solve(input);
-	
+	const std::string input{ utils::inputFile(__FILE__) };
+
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
 	return 0;
+
 }
 

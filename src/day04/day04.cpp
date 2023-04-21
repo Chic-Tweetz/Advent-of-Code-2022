@@ -1,3 +1,5 @@
+// --- Day 4: Camp Cleanup ---
+
 #include <array>
 #include <exception>
 #include <filesystem>
@@ -61,7 +63,7 @@ namespace Puzzle1
 
             if (elfpair.length() < 1)
             {
-                std::cout << "Contained count: " << containedCount << '\n';
+				utils::printAnswer("contained count: ", containedCount);
                 return; // finished
             }
 
@@ -96,7 +98,7 @@ namespace Puzzle2
 
             if (elfpair.length() < 1)
             {
-                std::cout << "Overlap count: " << overlapCount << '\n';
+				utils::printAnswer("overlap count: ", overlapCount);
                 return; // finished
             }
 
@@ -105,12 +107,22 @@ namespace Puzzle2
 	}
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
-	
-	Puzzle1::solve(input);
-	Puzzle2::solve(input);
-	
+	flags::set(argc, argv);
+
+	const std::string input{ utils::inputFile(__FILE__) };
+
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
 	return 0;
+
 }

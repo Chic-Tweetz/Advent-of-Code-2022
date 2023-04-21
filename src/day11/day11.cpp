@@ -1,6 +1,4 @@
-
-// #define TEST_INPUT
-// #define DEBUG
+// --- Day 11: Monkey in the Middle ---
 
 #include <deque>
 #include <exception>
@@ -13,10 +11,9 @@
 
 #include "utils.h"
 
-
 // Initially tried to brute force with unsigned long long
 // But the numbers were TOO big and we had to puzzle out some modulo and 
-// Lowest common denominator shenanigans
+// lowest common denominator shenanigans
 using MonkeyNum_T = long;
 
 // Unfortunately, this is now a huge mess :)
@@ -339,7 +336,7 @@ private:
 
 namespace Puzzle1
 {
-	std::string solve(const std::string& infile)
+	void solve(const std::string& infile)
 	{
 		std::ifstream inf { infile };
 
@@ -368,15 +365,14 @@ namespace Puzzle1
 			MonkeyFactory::takeTurns();
 		}
 
-		std::string solution { std::to_string( MonkeyFactory::solution() ) };
-		std::cout << "Monkey Business after 20 rounds: " << solution << '\n';
-		return solution;
+		utils::printAnswer("monkey business after 20 rounds: ", MonkeyFactory::solution());
+
 	}
 };
 
 namespace Puzzle2
 {
-	std::string solve(const std::string& infile)
+	void solve(const std::string& infile)
 	{
 		std::ifstream inf { infile };
 
@@ -412,46 +408,27 @@ namespace Puzzle2
 #endif
 		}
 
-		std::string solution { std::to_string( MonkeyFactory::solution() ) };
-		std::cout << "Monkey Business after 10000 rounds: " << solution << '\n';
-		return solution;
+		utils::printAnswer("monkey business after 10000 rounds: ", MonkeyFactory::solution());
+
 	}
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
-	
-	auto solution1{ Puzzle1::solve(input) }; 
-	
-	#ifdef TEST_INPUT
-	if (solution1 == "10605")
-	#else
-	if (solution1 == "117640")
-	{
-		std::cout << "\n***  CORRECT  ***\n\n";
-	}
-	else
-	{
-		std::cout << "\n*** INCORRECT! ***\n\n";
-	}
-	#endif
+	flags::set(argc, argv);
 
-	MonkeyFactory::reset();
+	const std::string input{ utils::inputFile(__FILE__) };
 
-	auto solution2{ Puzzle2::solve(input) };
-	#ifdef TEST_INPUT
-	if (solution2 == "2713310158")
-	#else
-	if (solution2 == "30616425600")
-	#endif
+	try
 	{
-		std::cout << "\n***  CORRECT  ***\n\n";
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
 	}
-	else
+	catch(const std::exception& e)
 	{
-		std::cout << "\n*** INCORRECT! ***\n\n";
+		std::cerr << e.what() << '\n';
 	}
-	
+
 	return 0;
+
 }

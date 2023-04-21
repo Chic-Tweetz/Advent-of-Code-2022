@@ -1,4 +1,4 @@
-// Copy and paste for each day for a quick start
+// --- Day 9: Rope Bridge ---
 
 #include <algorithm>
 #include <array>
@@ -297,13 +297,7 @@ void drawRope(Coord* head, Coord* end)
 
 		bmp.save(imagename.data());
 
-		// std::cout << imagename << " should have " << span << " pixels\n";
-
 	}
-
-
-//	std::cout << "largestspan " << largestSpan << '\n';
-	
 
 }
 
@@ -344,9 +338,7 @@ namespace Puzzle1
 			}
 		}
 
-		std::cout << "Unique spaces visited by tail of 2 Planck length rope: " << visited.size() << '\n';
-
-
+		utils::printAnswer("unique spaces visited by tail of 2 Planck length rope: ", visited.size());
 	}
 };
 
@@ -389,57 +381,26 @@ namespace Puzzle2
 			}
 		}
 
-		// auto minx{ *(std::min_element(rope.begin(), rope.end())) };
-		// auto maxx{ *(std::max_element(rope.begin(), rope.end())) };
-
-		// auto miny{ *(std::min_element(rope.begin(), rope.end(),
-		// 	[](const Coord &a, const Coord &b)
-		// 	{
-		// 		return a.y > b.y;
-		// 	}))  };
-		// auto maxy{ *(std::min_element(rope.begin(), rope.end(),
-		// 	[](const Coord &a, const Coord &b)
-		// 	{
-		// 		return a.y < b.y;
-		// 	}))  };
-
-		// std::cout << "min: " << minx << " max: " << maxx << '\n';
-		// std::cout << "miny: " << miny << "maxy: " << maxy << '\n';
-
-		// Coord span;
-
-		// span.x = maxx.x - minx.x;
-		// span.y = maxy.y - miny.y;
-
-		// std::cout << "Span: " << span << '\n';
-
-		std::cout << "Unique spaces visited by tail of 10 Planck length rope: " << visited.size() << '\n';
+		utils::printAnswer("unique spaces visited by tail of 10 Planck length rope: ", visited.size());
 	}
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
+	flags::set(argc, argv);
 
-	// Puzzle1::solve(input); 
-	Puzzle2::solve(input);
-	
-	// createBitMap();
+	const std::string input{ utils::inputFile(__FILE__) };
 
-	//const int width = 640;
-	//const int height = 480;
-
-	//Image image(width, height);
-
-	//for (int y{ 0 }; y < height; ++y)
-	//{
-	//	for (int x{ 0 }; x < width; ++x)
-	//	{
-	//		image.setColor(Color((float)x / (float)width, 1.0f - ((float)x / (float)width), (float)y / (float)height), x, y);
-	//	}
-	//}
-
-	//image.save("thisimage.bmp");
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
 
 	return 0;
+
 }

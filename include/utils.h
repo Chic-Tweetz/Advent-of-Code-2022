@@ -1,103 +1,246 @@
 #pragma once
 
+// This is chunky enough to split into (probably multiple) header & source files
+
 #include <algorithm>
-#include <chrono> // for std::chrono functions
 #include <exception>
 #include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <sstream>
 #include <string_view>
 #include <vector>
 
-// Debug macros - DPRINT, DPRINTLN can be toggled on or off, DERR prints in RED text :O
-#ifdef DEBUG
-#  define DERR(x) std::cerr << "\033[31m" << x << "\033[0m"; 
-	
-namespace debug
+#define RELPATH(x) utils::getFilePath(__FILE__, x)
+
+// Just for fun
+namespace style
 {
-	bool bPrintEnabled{ true }; // Toggle DPRINT when needed
+    inline const char* prefix      { "\033["    };
+    inline const char* postfix     { "m"        };
+    inline const char* reset       { "\033[0m"  };
+    inline const char* black       { "\033[30m" };
+    inline const char* red         { "\033[31m" };
+    inline const char* green       { "\033[32m" };
+    inline const char* yellow      { "\033[33m" };
+    inline const char* blue        { "\033[34m" };
+    inline const char* magenta     { "\033[35m" }; 
+    inline const char* cyan        { "\033[36m" }; 
+    inline const char* white       { "\033[37m" }; 
+    inline const char* bgBlack     { "\033[40m" };
+    inline const char* bgRed       { "\033[41m" };
+    inline const char* bgGreen     { "\033[42m" };
+    inline const char* bgYellow    { "\033[43m" };
+    inline const char* bgBlue      { "\033[44m" };
+    inline const char* bgMagenta   { "\033[45m" };
+    inline const char* bgCyan      { "\033[46m" };
+    inline const char* bgWhite     { "\033[47m" };
+    inline const char* bold        { "\033[1m"  };
+    inline const char* underline   { "\033[4m"  };
+    inline const char* invert      { "\033[7m"  };
+    inline const char* unBold      { "\033[21m" };
+    inline const char* noUnderline { "\033[24m" };
+    inline const char* unInvert    { "\033[27m" };
+};
+
+namespace flags
+{
+    enum class Flag : std::uint8_t
+    {
+        none             = 0,     
+        p1               = 1 << 0,  // run puzzle1
+        p2               = 1 << 1,  // run puzzle2
+        test             = 1 << 2,  // use test input
+        debug            = 1 << 3,  // enable debug macros
+        log              = 1 << 4,  // enable logging
+        save_answer      = 1 << 5,  // write puzzle answers to files
+        overwrite_answer = 1 << 6,  // overwrite puzzle answer files
+                     //  = 1 << 7   // room for 1 more in 8 bit flag
+    };
+
+    using flag_t = std::underlying_type_t<Flag>;
+
+    inline flag_t fcast(Flag f) { return static_cast<flag_t>(f); }
+    inline Flag fcast(flag_t ft) { return static_cast<Flag>(ft); }
+
+    Flag operator|(Flag lhs, Flag rhs) { return fcast(fcast(lhs) | fcast(rhs)); }
+    Flag operator&(Flag lhs, Flag rhs) { return fcast(fcast(lhs) & fcast(rhs)); }
+    Flag operator^(Flag lhs, Flag rhs) { return fcast(fcast(lhs) ^ fcast(rhs)); }
+    Flag operator~(Flag f) { return fcast(~fcast(f)); }
+
+    Flag& operator|=(Flag& lhs, Flag rhs) { lhs = lhs | rhs; return lhs; }
+    Flag& operator&=(Flag& lhs, Flag rhs) { lhs = lhs & rhs; return lhs; }
+    Flag& operator^=(Flag& lhs, Flag rhs) { lhs = lhs ^ rhs; return lhs; }
+
+    Flag flags{ Flag::none };
+
+    // Flags are only single characters for now
+    Flag flagFromChar(char f)
+    {
+        switch (f)
+        {
+        case '1' : return Flag::p1;
+        case '2' : return Flag::p2;
+        case 't' : return Flag::test;
+        case 'd' : return Flag::debug;
+        case 'l' : return Flag::log;
+        case 's' : return Flag::save_answer;
+        case 'o' : return Flag::overwrite_answer;
+        default  : return Flag::none;
+        }
+    }
+
+    void set(int argc, char* argv[])
+    {
+        for (int i{ 1 }; i < argc; ++i)
+        {
+            if (argv[i][0] == '-')
+            {
+                int j{ 0 };
+                while (argv[i][++j] != '\0')
+                {
+                    flags |= flagFromChar(argv[i][j]);
+                }
+            }
+        }
+    }
+
+    void set(Flag f) { flags |= f; }
+    void set(char c) { flags |= flagFromChar(c); }
+
+    void reset(Flag f) { flags &= ~f; }
+    void reset(char c) { flags &= ~flagFromChar(c); }
+
+    bool isSet(Flag f) { return fcast(flags & f); }
+    bool isSet(char c) { return isSet(flagFromChar(c)); }
 }
-#  define DRESET "\033[0m"
-#  define DRED "\033[31m"
-#  define DGREEN "\033[32m"
-#  define DYELLOW "\033[33m"
-#  define DBLUE "\033[34m"
-#  define DCOL "\033["
-
-#  define DPRINT(x) if (debug::bPrintEnabled) { std::cout << x; }
-#  define DPRINTLN(x) if (debug::bPrintEnabled) { std::cout << x << '\n'; }
-
-#  define DTOGGLEPRINT() debug::bPrintEnabled = !debug::bPrintEnabled;
-#  define DSETPRINTENABLED(b) debug::bPrintEnabled = b;
-#else
-#  define DPRINT(x)
-#  define DPRINTLN(x)
-#  define DERR(x)
-#  define DTOGGLEPRINT()
-#  define DSETPRINTENABLED(b)
-#endif
-
+// We have file helpers
+// We also have some methods for common string & input file uses - could make two headers
 namespace utils
 {
-    template<typename T>
-    void printAnswer(const T answer, const T correctAnswer, std::string_view flavourStart = "", std::string_view flavourEnd = "")
+    // By default (neither p1 or p2 flags set) we run both: if one is set, check if the other is to decide if that runs
+    bool doP1() { return flags::isSet(flags::Flag::p1) || !flags::isSet(flags::Flag::p2); }
+    
+    // Use this var to automatically have printAnswer use puzzle2
+    bool bPuzzle2{ false };
+    // Call doP2 before running the puzzle to have bPuzzle2 set
+    bool doP2() { bPuzzle2 = true; return flags::isSet(flags::Flag::p2) || !flags::isSet(flags::Flag::p1); }
+
+    std::string defaultInputFile()
     {
-        if (answer == correctAnswer)
+        if (flags::isSet(flags::Flag::test))
         {
-            std::cout << flavourStart << "\033[32m" << answer << "\033[0m" << flavourEnd << '\n';
+            return "test";
         }
         else
         {
-            std::cout << "\033[31m" << answer << "\033[0m" << " is incorrect. Answer is: " << correctAnswer << '\n';
+            return "input";
         }
     }
     
-    template<typename T>
-    void printAnswer(const T answer, std::string_view flavourStart = "", std::string_view flavourEnd = "")
+    class DayInfo
     {
-        std::cout << flavourStart << "\033[32m" << answer << "\033[0m" << flavourEnd << '\n';
-    }
-    // Copied & pasted from learncpp.com
-    class Timer
-    {
-    private:
-        // Type aliases to make accessing nested type easier
-        using Clock = std::chrono::steady_clock;
-        using Second = std::chrono::duration<double, std::ratio<1> >;
-
-        std::chrono::time_point<Clock> m_beg { Clock::now() };
-
     public:
-        void reset()
+        static void init(std::filesystem::path cppFile, const std::string& input);
+
+        static bool initialised()
         {
-            m_beg = Clock::now();
+            return m_singletonInstance.get(); // False while nullptr
         }
 
-        double elapsed() const
-        {
-            return std::chrono::duration_cast<Second>(Clock::now() - m_beg).count();
-        }
+        template <typename T>
+        static void tryAnswer1(T answer, const std::string &flavourStart = "", const std::string &flavourEnd = "");
+
+        template <typename T>
+        static void tryAnswer2(T answer, const std::string &flavourStart = "", const std::string &flavourEnd = "");
         
-        void printElapsed() const
-        {
-            const double time{ elapsed() }; 
-            std::cout << "Elapsed: " << time << '\n';
-        }
+        // Getters from m_singletonInstance (no checks for null here just remember to use init() first)
+        static const std::string &day() { return m_singletonInstance->m_day; } 
+        static const std::string &inputFilePath() { return m_singletonInstance->m_inputFilePath; } 
+        static const std::string &puzzleSolutionsDir() { return m_singletonInstance->m_puzzleSolutionsDir; } 
+        static const std::string &pt1SolutionFile() { return m_singletonInstance->m_pt1SolutionFile; } 
+        static const std::string &pt2SolutionFile() { return m_singletonInstance->m_pt2SolutionFile; } 
+
+    private:
+        const std::string m_day;
+        const std::string m_inputFilePath;
+        const std::string m_puzzleSolutionsDir;
+        const std::string m_pt1SolutionFile;
+        const std::string m_pt2SolutionFile;
+
+        DayInfo(std::filesystem::path cppFile, const std::string& input);
+
+        static std::unique_ptr<DayInfo> m_singletonInstance;
+
+        template<typename T>
+        static void tryAnswer(T answer, bool bPart2 = false, const std::string &flavourStart = "", const std::string &flavourEnd = "");
+        
+        static void saveAnswer(const std::string &answer, bool bPart2 = false);
     };
 
-    // Pass the __FILE__ macro for the first arg to get files relative to source cpp file dir
-    // I've been using #ifdef TESTINPUT for a few files already so I'll put it here too
-    // Now I'll relax with the preprocessor directives because this is getting out of hand
-#ifdef TESTINPUT
-    // Gets fileDir/input by default or fileDir/test with #TESTINPUT defined
-    const std::string getFilePath(const std::string &srcFilePath, const std::string &fileName = "test")
-#else
-    // Gets fileDir/input by default or fileDir/test with #TESTINPUT defined
-    const std::string getFilePath(const std::string &srcFilePath, const std::string &fileName = "input")
-#endif
+    std::unique_ptr<DayInfo> DayInfo::m_singletonInstance = nullptr;
+
+    // Initialise with __FILE__ macro and optional input file name
+    void init(std::filesystem::path cppFile, const std::string& input = defaultInputFile())
+    {
+        DayInfo::init(cppFile, input);
+    }
+
+    // We usually (always?) want to get the input file after init, so we can call init through this method and return input
+    const std::string& inputFile(std::filesystem::path cppFile, const std::string& input = defaultInputFile())
+    {
+        if (!DayInfo::initialised())
+            DayInfo::init(cppFile, input);
+
+        return DayInfo::inputFilePath();
+    }
+
+    const std::string& inputFile()
+    {
+        return DayInfo::inputFilePath();
+    }
+
+    std::filesystem::path projectPath()
+    {
+        return std::filesystem::path{ __FILE__ }.parent_path().parent_path().string();
+    }
+
+    std::filesystem::path allSolutionsDir()
+    {
+        return projectPath().append("solutions");
+    }
+
+    std::filesystem::path allLogsDir()
+    {
+        return projectPath().append("logs");
+    }
+
+    // If answer is a string, it will be used for flavourStart - coerce the correct params by adding an empty flavourEnd arg ""
+    template<typename T>
+    void printAnswer(const std::string &flavourStart, const T answer, const std::string &flavourEnd = "")
+    {
+        if (bPuzzle2)
+            DayInfo::tryAnswer2(answer, flavourStart, flavourEnd);
+        else
+            DayInfo::tryAnswer1(answer, flavourStart, flavourEnd);
+    }
+
+    template<typename T>
+    void printAnswer(const T answer, const std::string &flavourEnd = "")
+    {
+        printAnswer("", answer, flavourEnd);
+    }
+
+    // Blank version for dayTemplate
+    void printAnswer()
+    {
+    }
+
+    // Gets fileDir/input by default or fileDir/test with -t cmd arg
+    const std::string getFilePath(const std::string &srcFilePath, const std::string &fileName = defaultInputFile())
     {
         return std::filesystem::path{ srcFilePath }.parent_path().append(fileName).string();
     }
@@ -292,3 +435,103 @@ namespace utils
         }
     }
 };
+
+// Compare answers against those stored in files in solutions/dayxx, optionally save answer to new file / overwrite
+template<typename T>
+void utils::DayInfo::tryAnswer(T answer, bool bPart2, const std::string &flavourStart, const std::string &flavourEnd)
+{
+    std::stringstream ss;
+    ss << answer;
+    const std::string answerStr{ ss.str() };
+
+    std::ifstream correctAnswerFile{ bPart2 ? pt2SolutionFile() : pt1SolutionFile() };
+    if (correctAnswerFile.good())
+    {
+        correctAnswerFile.close();
+        
+        auto correctStr{ bufferInput( ( bPart2 ? pt2SolutionFile() : pt1SolutionFile() ) ) };
+
+        if (correctStr != answerStr)
+        {
+            if (flags::isSet(flags::Flag::overwrite_answer))
+            {
+                saveAnswer(answerStr, bPart2);
+            }
+            else if (flags::isSet(flags::Flag::save_answer))
+            {
+                std::cout << "save flag set but file exists, use -o flag to overwrite " << ( bPart2 ? pt2SolutionFile() : pt1SolutionFile() ) << '\n';
+            }
+
+            std::cout << "\033[31m" << answer << "\033[0m" << " is incorrect.\nThe correct answer is: " << correctStr << '\n';
+            return;
+        }
+    }
+    if (flags::isSet(flags::Flag::save_answer | flags::Flag::overwrite_answer))
+    {
+        saveAnswer(answerStr, bPart2);
+    }
+
+    std::cout << flavourStart << style::green << style::bold << answerStr << style::reset << flavourEnd << '\n';
+}
+
+template <typename T>
+void utils::DayInfo::tryAnswer1(T answer, const std::string &flavourStart, const std::string &flavourEnd)
+{
+    tryAnswer(answer, false, flavourStart, flavourEnd);
+}
+
+template <typename T>
+void utils::DayInfo::tryAnswer2(T answer, const std::string &flavourStart, const std::string &flavourEnd)
+{
+    tryAnswer(answer, true, flavourStart, flavourEnd);
+}
+
+void utils::DayInfo::saveAnswer(const std::string &answer, bool bPart2)
+{
+    if (!std::filesystem::exists(utils::allSolutionsDir()))
+    {
+        std::cout << "creating dir: " << utils::allSolutionsDir() << '\n';
+        std::filesystem::create_directory(utils::allSolutionsDir());
+    }
+    if (!std::filesystem::exists(puzzleSolutionsDir()))
+    {
+        std::cout << "creating dir: " << puzzleSolutionsDir() << '\n';
+        std::filesystem::create_directory(puzzleSolutionsDir());
+    }
+
+    auto outFilePath{ bPart2 ? pt2SolutionFile() : pt1SolutionFile() };
+    if (!flags::isSet(flags::Flag::overwrite_answer) && std::filesystem::exists(outFilePath))
+    {
+        std::cerr << style::yellow << "overwrite disabled, not writing answer to " << style::reset << outFilePath << '\n';
+        std::cout << "use " << style::bold << style::magenta << "-o " << style::reset << "flag to save and overwrite\n";
+        return;
+    }
+
+    std::ofstream of{ outFilePath };
+    if (!of)
+    {
+        std::cerr << "could not write to file " << outFilePath << '\n';
+    }
+    else
+    {
+        std::cout << "writing " << answer << "\nto " << outFilePath << '\n';
+        of << answer;
+    }
+}
+
+void utils::DayInfo::init(std::filesystem::path cppFile, const std::string& input)
+{
+    if (!m_singletonInstance)
+    {
+        m_singletonInstance = std::unique_ptr<DayInfo>{ new DayInfo{ cppFile, input } };
+    }
+}
+
+utils::DayInfo::DayInfo(std::filesystem::path cppFile, const std::string& input) :
+    m_day{ cppFile.filename().replace_extension("").string() },
+    m_inputFilePath{ utils::getFilePath(cppFile, input) },
+    m_puzzleSolutionsDir{ utils::allSolutionsDir().append(m_day).string() },
+    m_pt1SolutionFile{ utils::allSolutionsDir().append(m_day).append(input + "_solution_pt1") },
+    m_pt2SolutionFile{ utils::allSolutionsDir().append(m_day).append(input + "_solution_pt2") }
+{
+}

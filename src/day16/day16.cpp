@@ -1,8 +1,7 @@
-// Release pressure to rescue elephants
-// Not too proud of this one lol
+// --- Day 16: Proboscidea Volcanium ---
 
-#define DEBUG
-// #define TESTINPUT
+// Release pressure to rescue elephants
+// Want to have another stab at this so that part 2 gets solved in a reasonable amount of time!
 
 #include <array>
 #include <deque>
@@ -18,6 +17,7 @@
 #include <utility>
 #include <vector>
 
+#include "debug.h"
 #include "utils.h"
 
 const std::string startValve{ "AA" };
@@ -210,7 +210,7 @@ struct ValvesStateTwoOpeners : public ValvesState
 		{
 			bestDuoRelease = pressureReleased;
 			// Printing a line so I can see something's actually happening!
-			// DPRINTLN(DCOL << "36m" << "new best: " << bestDuoRelease);
+			// DL(DCOL << "36m" << "new best: " << bestDuoRelease);
 		}
 	}
 
@@ -532,11 +532,7 @@ namespace Puzzle1
 		// 12486 iterations to get answer
 		int answer{ ValvesState{}.tryAll() };
 
-#ifdef TESTINPUT
-		utils::printAnswer(answer, 1651, "Highest possible pressure release in 30 minutes: ");
-#else
-		utils::printAnswer(answer, 1716, "Highest possible pressure release in 30 minutes: ");
-#endif
+		utils::printAnswer("highest possible pressure release in 30 minutes: ", answer);
 	}
 };
 
@@ -556,27 +552,33 @@ namespace Puzzle2
 
 		makeValveLists(infile);
 
-		// Well this worked after a few MINUTES 
+		// Well this worked after about 5 MINUTES 
 		// Clearly there's room for improvement here!
 		int answer{ ValvesStateTwoOpeners{}.tryAll() };
 
-#ifdef TESTINPUT
-		utils::printAnswer(answer, 1707);
-#else
-		utils::printAnswer(answer, 2504);
-#endif
+		utils::printAnswer("highest possible pressure release in 26 minutes with an elephant's help: ", answer);
 
 		// 10349731 Iterations (part 1 took 12486!)
-		DPRINTLN("This took " << ValvesStateTwoOpeners::iterations << " iterations!");
+		// DL("This took " << ValvesStateTwoOpeners::iterations << " iterations!");
 	}
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
+	flags::set(argc, argv);
 
-	Puzzle1::solve(input); 
-	Puzzle2::solve(input);
-	
+	const std::string input{ utils::inputFile(__FILE__) };
+
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
 	return 0;
+
 }

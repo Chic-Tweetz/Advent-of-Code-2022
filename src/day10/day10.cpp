@@ -1,4 +1,4 @@
-// Copy and paste for each day for a quick start
+// --- Day 10: Cathode-Ray Tube ---
 
 #include <cmath>
 #include <exception>
@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 
+#include "debug.h"
 #include "utils.h"
 
 namespace Puzzle1
@@ -62,7 +63,7 @@ namespace Puzzle1
 			
 		}
 
-		std::cout << "Signal strength: " << signal << "\n\n";
+		utils::printAnswer("signal strength: ", signal);
 
 	}
 };
@@ -82,25 +83,28 @@ namespace Puzzle2
 		int x{ 1 };
 		int addnext{ 0 };
 		int addqueue{ 0 };
+		
+		std::string answerStr;
 
 		while (++cycle <= 240)
 		{
 			int pixel{ ((cycle - 1) % 40 ) }; // 0 to 39
 
-			// std::cout << pixel % 10;
-
 			if (std::abs(pixel - x) < 2)
 			{
-				std::cout << '#';
+				answerStr += '#';
+				DOUT << '#';
 			}
 			else
 			{
-				std::cout << ' ';
+				answerStr += ' ';
+				DOUT << ' ';
 			}
 
 			if (pixel == 39)
 			{
-				std::cout << '\n';
+				answerStr += '\n';
+				DOUT << '\n';
 			}
 
 			// Cycle Start
@@ -129,17 +133,30 @@ namespace Puzzle2
 			x += addnext;
 		}
 		
-		std::cout << '\n';
-		
+		answerStr += '\n';
+		DOUT << '\n';
+		DOUT << answerStr;
+
+		utils::printAnswer("\nhidden letters:\n\n", answerStr, "");
 	}
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__, "input") };
+	flags::set(argc, argv);
 
-	Puzzle1::solve(input); 
-	Puzzle2::solve(input);
-	
+	const std::string input{ utils::inputFile(__FILE__) };
+
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
 	return 0;
+
 }

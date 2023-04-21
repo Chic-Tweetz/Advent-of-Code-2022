@@ -1,3 +1,5 @@
+// --- Day 3: Rucksack Reorganization ---
+
 #include <algorithm>
 #include <array>
 #include <exception> 
@@ -89,7 +91,7 @@ namespace Puzzle1
             }
             else
             {
-                std::cout << "Priorities Sum: " << prioritiesSum << '\n';
+                utils::printAnswer("priorities sum: ", prioritiesSum);
                 return; // finished
             }
         }
@@ -145,7 +147,7 @@ namespace Puzzle2
                 
                 if(elfGroup[i].length() < 1)
                 {
-                    std::cout << "Priorities sum: " << sum << '\n';
+                    utils::printAnswer("priorities sum: ", sum);
                     return; // finished
                 }
             }
@@ -155,12 +157,22 @@ namespace Puzzle2
 	}
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
+	flags::set(argc, argv);
 
-    Puzzle1::solve(input); 
-	Puzzle2::solve(input);
-	
+	const std::string input{ utils::inputFile(__FILE__) };
+
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
 	return 0;
+
 }

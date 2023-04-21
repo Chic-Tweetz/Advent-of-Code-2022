@@ -1,3 +1,5 @@
+// --- Day 2: Rock Paper Scissors ---
+
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -181,7 +183,7 @@ namespace Puzzle1
 
             yourScore += Rps::play(instr[oppIndex], instr[youIndex]);
         }
-        std::cout << "your score = " << yourScore << '\n';
+		utils::printAnswer("your score after following strategy 1: ", yourScore);
 
 	}
 };
@@ -210,17 +212,26 @@ namespace Puzzle2
             yourScore += Rps::play2(instr[oppIndex], instr[youIndex]);
         }
 
-        std::cout << "your score = " << yourScore << '\n';
+		utils::printAnswer("your score after following strategy 2: ", yourScore);
 	}
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
+	flags::set(argc, argv);
 
-    Puzzle1::solve(input); 
-	Puzzle2::solve(input);
-	
+	const std::string input{ utils::inputFile(__FILE__) };
+
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
 	return 0;
-}
 
+}

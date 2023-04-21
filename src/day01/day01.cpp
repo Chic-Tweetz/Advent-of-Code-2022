@@ -1,3 +1,5 @@
+// --- Day 1: Calorie Counting ---
+
 #include <algorithm>
 #include <array>
 #include <exception>
@@ -7,7 +9,8 @@
 #include <numeric>
 #include <string>
 
-#include "../../include/utils.h"
+#include "debug.h"
+#include "utils.h"
 
 namespace Puzzle1
 {
@@ -42,7 +45,7 @@ namespace Puzzle1
 			elfCals = 0;
 		}
 
-		std::cout << "Highest calories: " << highestCals << '\n';
+		utils::printAnswer("most calories held by a single elf: ", highestCals);
 	}
 };
 
@@ -92,19 +95,28 @@ namespace Puzzle2
 		}
 
 		auto caloriesSum{ std::accumulate(highestCals.begin(), highestCals.end(), 0) };
-		std::cout << "Top three elves combined calories: " << caloriesSum << '\n';
+
+		utils::printAnswer("calories held by the top three elves: ", caloriesSum);
+
 	}
-
-
-
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	const std::string input{ utils::getFilePath(__FILE__) };
+	flags::set(argc, argv);
 
-    Puzzle1::solve(input); 
-	Puzzle2::solve(input);
-	
+	const std::string input{ utils::inputFile(__FILE__) };
+
+	try
+	{
+		if (utils::doP1()) Puzzle1::solve(input); 
+		if (utils::doP2()) Puzzle2::solve(input);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+
 	return 0;
+
 }
