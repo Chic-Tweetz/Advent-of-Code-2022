@@ -15,6 +15,7 @@
 #include <vector>
 
 #define RELPATH(x) utils::getFilePath(__FILE__, x)
+#define FOR(n) for (int i{ 0 }; i < n; ++i)
 
 // Just for fun
 namespace style
@@ -116,6 +117,8 @@ namespace flags
 
     bool isSet(Flag f) { return fcast(flags & f); }
     bool isSet(char c) { return isSet(flagFromChar(c)); }
+
+    bool d() { return fcast(flags & Flag::debug); } // Quick debug flag check with if(flags::d())
 }
 // We have file helpers
 // We also have some methods for common string & input file uses - could make two headers
