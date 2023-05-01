@@ -259,6 +259,7 @@ namespace utils
         {
             std::string line;
             std::getline(inf, line);
+            if(!inf) break; // Was getting the last empty line without this
             fnc(line);
         }
     }
@@ -391,6 +392,28 @@ namespace utils
             auto match{ std::search(begin, str.end(), splitOn.begin(), splitOn.end()) };
 
             list.push_back( std::string{ begin, match } );
+            begin = match + static_cast<int>(splitOn.length());
+
+        }
+        return list;
+    }
+
+    std::vector<int> splitInts(std::string_view str, const std::string &splitOn)
+    {
+        std::vector<int> list;
+
+        if (splitOn.length() == 0)
+        {
+            std::cerr << ("utils::split called with empty split string\n");
+            return list;
+        }
+
+        auto begin{ str.begin() };
+        while (begin < str.end())
+        {
+            auto match{ std::search(begin, str.end(), splitOn.begin(), splitOn.end()) };
+
+            list.push_back( std::stoi(std::string{ begin, match }) );
             begin = match + static_cast<int>(splitOn.length());
 
         }
