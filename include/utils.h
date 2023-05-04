@@ -16,6 +16,8 @@
 
 #define RELPATH(x) utils::getFilePath(__FILE__, x)
 #define FOR(n) for (int i{ 0 }; i < n; ++i)
+#define ST(i) static_cast<size_t>(i) // Speeding up these common casts
+#define TOI(i) static_cast<int>(i) // Beware overflow
 
 // Just for fun
 namespace style
@@ -119,6 +121,7 @@ namespace flags
     bool isSet(char c) { return isSet(flagFromChar(c)); }
 
     bool d() { return fcast(flags & Flag::debug); } // Quick debug flag check with if(flags::d())
+    bool t() { return fcast(flags & Flag::test); } // Quick debug flag check with if(flags::t())
 }
 // We have file helpers
 // We also have some methods for common string & input file uses - could make two headers

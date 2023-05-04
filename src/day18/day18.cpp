@@ -19,37 +19,37 @@ struct LavaMap
 {
 	using cont_t = std::vector<std::vector<std::vector<int>>>;
 	LavaMap(int sizeX, int sizeY, int sizeZ) :
-		map{ static_cast<size_t>(sizeX), std::vector<std::vector<int>>{ static_cast<size_t>(sizeY), std::vector<int>(static_cast<size_t>(sizeZ), 0) } }
+		map{ ST(sizeX), std::vector<std::vector<int>>{ ST(sizeY), std::vector<int>(ST(sizeZ), 0) } }
 	{
 	}
 	LavaMap(const Vector3d &v3) : LavaMap(v3.x, v3.y, v3.z) {}
 
 	int& operator[](const Vector3d &v3)
 	{
-		return map[static_cast<size_t>(v3.x)][static_cast<size_t>(v3.y)][static_cast<size_t>(v3.z)];
+		return map[ST(v3.x)][ST(v3.y)][ST(v3.z)];
 	}
 
 	std::vector<std::vector<int>>& operator[](int i)
 	{
-		return map[static_cast<size_t>(i)];
+		return map[ST(i)];
 	}
 
 	bool inBounds(const Vector3d &co)
 	{
-		return co.x >= 0 && co.x < static_cast<int>(map.size()) &&
-			   co.y >= 0 && co.y < static_cast<int>(map[0].size()) &&
-			   co.z >= 0 && co.z < static_cast<int>(map[0][0].size());
+		return co.x >= 0 && co.x < TOI(map.size()) &&
+			   co.y >= 0 && co.y < TOI(map[0].size()) &&
+			   co.z >= 0 && co.z < TOI(map[0][0].size());
 	}
 
 	// A for each to keep these nested fors out of my sight
 	// int arg == value of coord in map, Vector3d& arg is the coord itself
 	void forEach(std::function<void(int, Vector3d&)> fnc, const Vector3d &startOffset = 0, const Vector3d &endOffset = 0)
 	{
-		for (size_t x{ static_cast<size_t>(startOffset.x) }; x < map.size() - static_cast<size_t>(endOffset.x); ++x)
+		for (size_t x{ ST(startOffset.x) }; x < map.size() - ST(endOffset.x); ++x)
 		{
-			for (size_t y{ static_cast<size_t>(startOffset.y) }; y < map[0].size() - static_cast<size_t>(endOffset.y); ++ y)
+			for (size_t y{ ST(startOffset.y) }; y < map[0].size() - ST(endOffset.y); ++ y)
 			{
-				for (size_t z{ static_cast<size_t>(startOffset.z) }; z < map[0][0].size() - static_cast<size_t>(endOffset.z); ++z)
+				for (size_t z{ ST(startOffset.z) }; z < map[0][0].size() - ST(endOffset.z); ++z)
 				{
 					Vector3d coord{ x, y, z };
 					fnc((*this)[coord], coord);	
@@ -62,11 +62,11 @@ struct LavaMap
 	// fnc is passed the coordinate of truthy predicates as a Vector3d
 	void forEachThat(std::function<bool(int)> pred, std::function<void(Vector3d&)> fnc, const Vector3d &startOffset = 0, const Vector3d &endOffset = 0)
 	{
-		for (size_t x{ static_cast<size_t>(startOffset.x) }; x < map.size() - static_cast<size_t>(endOffset.x); ++x)
+		for (size_t x{ ST(startOffset.x) }; x < map.size() - ST(endOffset.x); ++x)
 		{
-			for (size_t y{ static_cast<size_t>(startOffset.y) }; y < map[0].size() - static_cast<size_t>(endOffset.y); ++ y)
+			for (size_t y{ ST(startOffset.y) }; y < map[0].size() - ST(endOffset.y); ++ y)
 			{
-				for (size_t z{ static_cast<size_t>(startOffset.z) }; z < map[0][0].size() - static_cast<size_t>(endOffset.z); ++z)
+				for (size_t z{ ST(startOffset.z) }; z < map[0][0].size() - ST(endOffset.z); ++z)
 				{
 					Vector3d coord{ x, y, z };
 					if (pred((*this)[coord]))
