@@ -1,4 +1,4 @@
-// Copy and paste for each day for a quick start
+// --- Day 19: Not Enough Minerals ---
 
 #include <array>
 #include <cmath>
@@ -618,11 +618,11 @@ public:
 		}
 
 		DOUT << style::blue << "== BP" << bp.id << " ==\n" << style::reset;
-		std::cout << "most geodes: " << mostGeodes << '\n';
-		std::cout << "iters: " << iter << '\n';
-		std::cout << "culled: " << culled << '\n';
-		// std::cout << "strictly worse: " << strictlyWorse << '\n';
-		std::cout << "score: " << bp.id * mostGeodes << '\n';
+		DOUT << "most geodes: " << mostGeodes << '\n';
+		DOUT << "iters: " << iter << '\n';
+		DOUT << "culled: " << culled << '\n';
+		// DOUT << "strictly worse: " << strictlyWorse << '\n';
+		DOUT << "score: " << bp.id * mostGeodes << '\n';
 
 		return mostGeodes;
 	}

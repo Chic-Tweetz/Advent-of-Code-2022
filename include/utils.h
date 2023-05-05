@@ -8,6 +8,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <string>
 #include <sstream>
@@ -61,8 +62,10 @@ namespace flags
         log              = 1 << 4,  // enable logging
         save_answer      = 1 << 5,  // write puzzle answers to files
         overwrite_answer = 1 << 6,  // overwrite puzzle answer files
+        custom_input     = 1 << 7,  // follow with input file name
                      //  = 1 << 7   // room for 1 more in 8 bit flag
     };
+
 
     using flag_t = std::underlying_type_t<Flag>;
 
@@ -92,7 +95,40 @@ namespace flags
         case 'l' : return Flag::log;
         case 's' : return Flag::save_answer;
         case 'o' : return Flag::overwrite_answer;
+        case 'i' : return Flag::custom_input;
         default  : return Flag::none;
+        }
+    }
+
+    std::map<Flag, std::string> args;
+
+    void set(Flag f) { flags |= f; }
+    void set(char c) { flags |= flagFromChar(c); }
+
+    void reset(Flag f) { flags &= ~f; }
+    void reset(char c) { flags &= ~flagFromChar(c); }
+
+    bool isSet(Flag f) { return fcast(flags & f); }
+    bool isSet(char c) { return isSet(flagFromChar(c)); }
+
+    void setFlagArgs(Flag f, int argInd, int argc, char* argv[])
+    {
+        if (f == Flag::custom_input)
+        {
+            if (argInd >= argc)
+            {
+                std::cerr << "custom input flag (i) is set but no filename given\n";
+                reset(f);
+            }
+            else if (argv[argInd][0] == '-')
+            {
+                std::cerr << "custom input flag (i) is set but followed by a flag (hyphen -prefix)\n";
+                reset(f);
+            }
+            else
+            {
+                args[f] = argv[argInd];
+            }   
         }
     }
 
@@ -106,19 +142,13 @@ namespace flags
                 while (argv[i][++j] != '\0')
                 {
                     flags |= flagFromChar(argv[i][j]);
+                    setFlagArgs(flagFromChar(argv[i][j]), i + 1, argc, argv);
                 }
             }
         }
     }
 
-    void set(Flag f) { flags |= f; }
-    void set(char c) { flags |= flagFromChar(c); }
 
-    void reset(Flag f) { flags &= ~f; }
-    void reset(char c) { flags &= ~flagFromChar(c); }
-
-    bool isSet(Flag f) { return fcast(flags & f); }
-    bool isSet(char c) { return isSet(flagFromChar(c)); }
 
     bool d() { return fcast(flags & Flag::debug); } // Quick debug flag check with if(flags::d())
     bool t() { return fcast(flags & Flag::test); } // Quick debug flag check with if(flags::t())
@@ -137,14 +167,15 @@ namespace utils
 
     std::string defaultInputFile()
     {
+        if (flags::isSet(flags::Flag::custom_input))
+        {
+            return flags::args[flags::Flag::custom_input];
+        }
         if (flags::isSet(flags::Flag::test))
         {
             return "test";
         }
-        else
-        {
-            return "input";
-        }
+        return "input";
     }
     
     class DayInfo
