@@ -17,16 +17,16 @@
 #include "timer.h"
 
 const std::array<int, 35> triangularNumbers { 0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66, 78, 91, 105, 120,136, 153, 171, 190, 210, 231, 253, 276, 300, 325, 351, 378, 406, 435, 465, 496, 528, 561, 595 };
-// Enum ??
-struct Resources
-{
-	static const inline size_t begin{ 0 };
-	static const inline size_t ore{ 0 };
-	static const inline size_t clay{ 1 };
-	static const inline size_t obsidian{ 2 };
-	static const inline size_t geode{ 3 };
-	static const inline size_t end{ 4 };
 
+// Indices for each resource - used like an enum but I don't have to cast anything this way
+namespace Resources
+{
+	const inline size_t begin{ 0 };
+	const inline size_t ore{ 0 };
+	const inline size_t clay{ 1 };
+	const inline size_t obsidian{ 2 };
+	const inline size_t geode{ 3 };
+	const inline size_t end{ 4 };
 };
 
 struct Blueprint
@@ -59,21 +59,20 @@ struct Blueprint
 	const int obsidianClay;
 	const int geodeObsidian;
 
-	const std::array<int, 4> maxBots; // Enough bots to replenish all every build
-	const std::array<int, 4> lastBuildTimes; // I believe these are the last minutes building each is at all helpful
+	const std::array<int, 4> maxBots; // high cost of each resource, eg if 3 ore is the highest cost, you never need more than 3 orebots
+	const std::array<int, 4> lastBuildTimes; // The last minute building each robot could still help get a geode
 
 	std::array<int, 35> triangularGeodeObsCosts;
 	std::array<int, 35> triangularObsidianClayCosts;
 };
 
-// Didn't intend to use this in the final answers but it's good and quick now
-// You can get rid of the canBuild array as whenBuild is much better
-// I'm just gonna leave it
 class Choosey
 {
 public:
 	Choosey(const Blueprint &blueprint, bool bAuto = false, int startTime = 24) : time{ startTime }, bp{ blueprint } { fastFwd(); if (!bAuto) { prompt(); } }
-	Choosey(const Choosey &prev, size_t resource) : time{ prev.time }, bp{ prev.bp }
+	
+	// New states constructed from the previous state + the robot to build next
+	Choosey(const Choosey &prev, size_t newBot) : time{ prev.time }, bp{ prev.bp }
 	{
 		for (auto i{ Resources::begin }; i < Resources::end; ++i)
 		{
@@ -82,12 +81,7 @@ public:
 			whenBuild[i] = prev.whenBuild[i];
 			canBuild[i] = prev.canBuild[i];
 		}
-
-		buildInFuture(resource);
-
-		// prev.printResAndBots();
-		// std::cout << "=========\n";
-		// printResAndBots();
+		buildInFuture(newBot);
 	}
 private:
 	int time;
@@ -111,20 +105,18 @@ private:
 		// Its clay becomes available to build an obsidianbot at minute 3
 		// Giving just enough time for one extra geodebot to produce 1 extra geode
 
+		// Therefore we can reduce the total clay output by only builing claybots till minute 5
+
 		int clayBuildMinutes{ std::max(0, 1 + time - bp.lastBuildTimes[Resources::clay]) };
 		auto theoreticalClay{ actualClay + triangularNumbers[ST(clayBuildMinutes)] 
 	         + clayBuildMinutes * bp.lastBuildTimes[Resources::clay] };
-		
-		// auto theoreticalClay{ actualClay + triangularNumbers[ST(time)] };
 
 		auto actualObs{ res[Resources::obsidian] + bots[Resources::obsidian] * time };
 
 		// We can do the same for that minute 3 obsidibot
 
-		// Okay I broke it
 		int obsiBuildMinutes{ std::max(0, time - bp.lastBuildTimes[Resources::obsidian]) };
 		size_t triangularIndex{ ST(obsiBuildMinutes) };
-		// size_t triangularIndex{ ST(time) };
 
 		while (bp.triangularObsidianClayCosts[triangularIndex] > theoreticalClay)
 		{	
@@ -144,23 +136,23 @@ private:
 		}
 		auto theoreticalGeodes{ triangularNumbers[triangularIndex] };
 
-		// auto triangleStart{ whenBuild[Resources::geode] == time ? time : time + 1 };
-
-		// return actual + triangularNumbers[ST(triangleStart)];
 		return actualGeodes + theoreticalGeodes;
 	}
 
+	// Number of geodes you'd gather if building a geodebot every minute until the end
 	int maxGeodesSimple()
 	{
 		auto actual{ res[Resources::geode] + bots[Resources::geode] * time };
 		return actual + triangularNumbers[ST(time)];
 	}
 
+	// Gives actual number of geodes that would be gathered by minute 0
 	int projectedGeodes()
 	{
 		return res[Resources::geode] + bots[Resources::geode] * time;
 	}
 
+	// Print current resource / bot counts in a neatly spaced grid
 	void printResAndBots() const
 	{
 		//     ore  clay obsi geodes
@@ -214,6 +206,8 @@ private:
 		std::cout << '\n';
 	}
 
+	// Cmd line input to choose which bots to build
+	// For fun mainly, but also to make sure everything works as it should
 	void prompt()
 	{
 		std::cout << "== minute " << 25 - time << " ==\n";
@@ -260,6 +254,7 @@ private:
 		}
 	}
 
+	// Cmd prompt choices for manually checking everything's working right
 	bool choice()
 	{
 		char cmd{ multicmds.front() };
@@ -282,6 +277,7 @@ private:
 		}
 	}
 	
+	// Move one minute forwards, adding 1 resource for every robot
 	void forward()
 	{
 		for (size_t i{ Resources::begin }; i < Resources::end; ++i)
@@ -290,22 +286,26 @@ private:
 		}
 		if (--time <= 0)
 		{
-			// std::cout << "final geode count: " << res[Resources::geode] << '\n';
 			return;
 		}
 	}
 
+	// Move time to where resources for building bot have been gathered, build it
 	void buildInFuture(size_t resource)
 	{
+		// Add all resources gathered in the interim
 		for (size_t i{ Resources::begin }; i < Resources::end; ++i)
 		{
 			res[i] += (1 + (time - whenBuild[resource])) * bots[i];
 		}
 		
+		// Subtract an extra minute to account for build time
 		time = whenBuild[resource] - 1;
 
+		// Subtract ore cost
 		res[Resources::ore] -= bp.oreCosts[resource];
 
+		// Subtract extra resource cost for obsidibots or geodebots
 		if (resource == Resources::obsidian)
 		{
 			res[Resources::clay] -= bp.obsidianClay;
@@ -322,6 +322,7 @@ private:
 		fastFwd();
 	}
 
+	// CanBuilds aren't used for the acutal puzzle
 	void updateCanBuilds()
 	{
 		canBuild[0] = canBuildOrebot();
@@ -330,6 +331,8 @@ private:
 		canBuild[3] = canBuildGeodebot();
 	}
 
+	// WhenBuilds give the minute each bot could be constructed with current resources / bots
+	// 0 = either never or too late to make a difference
 	void updateWhenBuilds()
 	{
 		whenBuild[0] = willBeAbleToBuildOrebot();
@@ -342,13 +345,15 @@ private:
 	{
 		while (!canBuild[0] && !canBuild[1] && !canBuild[2] && !canBuild[3] && time > 0)
 		{
-			// std::cout << "== minute " << 25 - time << " ==\n";
+			// DOUT << "== minute " << 25 - time << " ==\n";
 			forward();
 			updateCanBuilds();
 			updateWhenBuilds();
 		}
 	}
 
+	// There are a lot of similar methods because I went one by one making sure everything was working
+	// Could simplifiy now
 	void buildOrebot()
 	{
 		forward();
@@ -515,62 +520,6 @@ private:
 	}
 
 public:
-	int depthFirst()
-	{
-		updateWhenBuilds();
-		std::stack<Choosey> queue;
-
-		queue.push(*this);
-
-		int iter{ 0 };
-		int culled{ 0 };
-		// int strictlyWorse{ 0 };
-
-		int mostGeodes{ 0 };
-		while (!queue.empty())
-		{
-			++iter;
-			auto top{ queue.top() };
-			queue.pop();
-
-			for (auto i{ Resources::begin }; i < Resources::end; ++i)
-			{
-				// std::cout << i << '\n';
-				if (top.whenBuild[i] > 0)
-				{
-					Choosey nextUp{ top, i };
-					// queue.push(Choosey{ top, i });
-					if (nextUp.projectedGeodes() > mostGeodes)
-					{
-						mostGeodes = nextUp.projectedGeodes();
-						queue.push(nextUp);
-						// std::cout << "new best: " << mostGeodes << '\n';
-					}
-					else if (nextUp.maxGeodes() > mostGeodes)
-					// else if (nextUp.maxGeodesSimple() > mostGeodes) // Simple is quicker
-					{
-						queue.push(nextUp);
-						// std::cout << "cull\n";
-						// queue.pop();
-					}
-					else
-					{
-						++culled;
-					}
-				}
-			}
-		}
-
-		DOUT << style::blue << "== BP" << bp.id << " ==\n" << style::reset;
-		std::cout << "most geodes: " << mostGeodes << '\n';
-		std::cout << "iters: " << iter << '\n';
-		std::cout << "culled: " << culled << '\n';
-		// std::cout << "strictly worse: " << strictlyWorse << '\n';
-		std::cout << "score: " << bp.id * mostGeodes << '\n';
-
-		return mostGeodes;
-	}
-
 	int breadthFirst()
 	{
 		updateWhenBuilds();
@@ -578,9 +527,8 @@ public:
 
 		queue.push_back(*this);
 
-		int iter{ 0 };
+		int iter{ 0 };   // For checking how well our culling is going
 		int culled{ 0 };
-		// int strictlyWorse{ 0 };
 
 		int mostGeodes{ 0 };
 		while (!queue.empty())
@@ -591,23 +539,17 @@ public:
 
 			for (auto i{ Resources::begin }; i < Resources::end; ++i)
 			{
-				// std::cout << i << '\n';
 				if (top.whenBuild[i] > 0)
 				{
 					Choosey nextUp{ top, i };
-					// queue.push(Choosey{ top, i });
 					if (nextUp.projectedGeodes() > mostGeodes)
 					{
 						mostGeodes = nextUp.projectedGeodes();
 						queue.push_back(nextUp);
-						// std::cout << "new best: " << mostGeodes << '\n';
 					}
 					else if (nextUp.maxGeodes() > mostGeodes)
-					// else if (nextUp.maxGeodesSimple() > mostGeodes) // Simple is quicker
 					{
 						queue.push_back(nextUp);
-						// std::cout << "cull\n";
-						// queue.pop();
 					}
 					else
 					{
@@ -621,7 +563,6 @@ public:
 		DOUT << "most geodes: " << mostGeodes << '\n';
 		DOUT << "iters: " << iter << '\n';
 		DOUT << "culled: " << culled << '\n';
-		// DOUT << "strictly worse: " << strictlyWorse << '\n';
 		DOUT << "score: " << bp.id * mostGeodes << '\n';
 
 		return mostGeodes;
@@ -653,17 +594,14 @@ namespace Puzzle1
 			Blueprint bp{ blueprint };
 			Choosey cmds{ bp, true };
 
-
-			// scoreSum += cmds.depthFirst() * bp.id; // what's quicker here?
 			scoreSum += cmds.breadthFirst() * bp.id; // breadth by 0.1 seconds
 
-			
 			std::getline(inf, blueprint);
 		}		
 
-		t.printElapsed();
+		DOUT << "elapsed: " << t.elapsed() << '\n';
 
-		utils::printAnswer(scoreSum);
+		utils::printAnswer("sum of blueprint scores: ", scoreSum);
 
 	}
 
@@ -698,16 +636,13 @@ namespace Puzzle2
 			Blueprint bp{ blueprint };
 			Choosey cmds{ bp, true, 32 };
 
-			// More similar in this one
-
-			// scoreSum *= cmds.depthFirst(); // 1.73471, 1.78146, 1.77562
 			scoreSum *= cmds.breadthFirst(); // 1.75117, 1.75187, 1.7477 
 			std::getline(inf, blueprint);
 		}		
 
-		t.printElapsed();
+		DOUT << "elapsed: " << t.elapsed() << '\n';
 
-		utils::printAnswer(scoreSum);
+		utils::printAnswer("product of first three blueprints' highest geode yield: ", scoreSum);
 
 	}
 };
