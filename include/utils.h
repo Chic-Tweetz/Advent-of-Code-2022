@@ -197,12 +197,14 @@ namespace utils
         // Getters from m_singletonInstance (no checks for null here just remember to use init() first)
         static const std::string &day() { return m_singletonInstance->m_day; } 
         static const std::string &inputFilePath() { return m_singletonInstance->m_inputFilePath; } 
+        static const std::string &inputFileName() { return m_singletonInstance->m_inputFileName; } 
         static const std::string &puzzleSolutionsDir() { return m_singletonInstance->m_puzzleSolutionsDir; } 
         static const std::string &pt1SolutionFile() { return m_singletonInstance->m_pt1SolutionFile; } 
         static const std::string &pt2SolutionFile() { return m_singletonInstance->m_pt2SolutionFile; } 
 
     private:
         const std::string m_day;
+        const std::string m_inputFileName;
         const std::string m_inputFilePath;
         const std::string m_puzzleSolutionsDir;
         const std::string m_pt1SolutionFile;
@@ -239,6 +241,12 @@ namespace utils
     {
         return DayInfo::inputFilePath();
     }
+
+    const std::string& inputFileName()
+    {
+        return DayInfo::inputFileName();
+    }
+
 
     std::filesystem::path projectPath()
     {
@@ -368,6 +376,57 @@ namespace utils
         return buffer;
     }
 
+    std::vector<std::string> bufferLinesWhile(const std::string &file, bool (*condition)(const std::string&))
+    {
+        std::ifstream inf{ file }; 
+        if (!inf.good())
+        {
+            throw std::runtime_error{ "Could not open file: " + file };
+        }
+        std::vector<std::string> buffer;
+
+        while(inf)
+        {
+            std::string line;
+            std::getline(inf, line);
+            if (condition(line))
+            {
+                buffer.push_back(line);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return buffer;
+    }
+
+    std::vector<std::string> bufferLinesWhile(std::ifstream &inf, bool (*condition)(const std::string&))
+    {
+        if (!inf.good())
+        {
+            throw std::runtime_error{ "Could not open file" };
+        }
+        std::vector<std::string> buffer;
+
+        while(inf)
+        {
+            std::string line;
+            std::getline(inf, line);
+            if (condition(line))
+            {
+                buffer.push_back(line);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return buffer;
+    }
+
     // Uses an out parameter to behave like std::getline. Discards lines until a condition is met
     void skipLinesUntil(std::ifstream &inf, std::string &line, bool (*condition) (const std::string&))
     {
@@ -483,16 +542,26 @@ namespace utils
             return;
         }
 
-        auto begin{ str.begin() };
-        while (begin < str.end())
+        // auto begin{ str.begin() };
+        // while (begin < str.end())
+        // {
+        //     auto match{ std::search(begin, str.end(), splitOn.begin(), splitOn.end()) };
+
+        //     fnc(std::string_view{ begin, match });
+
+        //     std::string_view{ begin,  };
+        //     begin = match + static_cast<int>(splitOn.length());
+
+        // }
+        
+        size_t start{ 0 };
+        while (start < str.length())
         {
-            auto match{ std::search(begin, str.end(), splitOn.begin(), splitOn.end()) };
-
-            fnc(std::string_view{ begin, match });
-
-            begin = match + static_cast<int>(splitOn.length());
-
+            auto match{ std::min(str.find(splitOn, start), str.length()) };
+            fnc(std::string_view{ str.data() + start, match - start });
+            start = match + splitOn.length();
         }
+
     }
 };
 
@@ -589,6 +658,7 @@ void utils::DayInfo::init(std::filesystem::path cppFile, const std::string& inpu
 
 utils::DayInfo::DayInfo(std::filesystem::path cppFile, const std::string& input) :
     m_day{ cppFile.filename().replace_extension("").string() },
+    m_inputFileName{ input },
     m_inputFilePath{ utils::getFilePath(cppFile, input) },
     m_puzzleSolutionsDir{ utils::allSolutionsDir().append(m_day).string() },
     m_pt1SolutionFile{ utils::allSolutionsDir().append(m_day).append(input + "_solution_pt1") },

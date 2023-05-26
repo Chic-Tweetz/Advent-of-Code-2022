@@ -1,7 +1,6 @@
 // --- Day 21: Monkey Math ---
 
 #include <exception>
-#include <filesystem>
 #include <forward_list>
 #include <fstream>
 #include <iostream>
@@ -46,14 +45,9 @@ public:
 	{
 		return m_num;
 	}
-
-	// For humn
-	void set(monkeynum_t newNum)
-	{
-		m_num = newNum;
-	}
 };
 
+// Monkeys which rely on other monkeys
 class MathsMonkey : public Monkey
 {
 private:
@@ -87,70 +81,39 @@ public:
 
 	monkeynum_t get() const { return m_equals; } 
 
+	// bConstOnLeft = monkey unaffected by humn's value
+	// Each step, only one monkey is affected, the other isn't
+
+	// Solve for nextMonkey for monkeys back from root to humn:
+	// m_equals = nextMonkey (op) const 
+	// m_equals = nextMonkey (op) val <-- this way around bConstOnLeft
 	void next(char op, monkeynum_t val, bool bConstOnLeft = false)
 	{
-		if (bConstOnLeft)
+		if (bConstOnLeft) // *, + same either way, / only happens one way round
 		{
 			if (op != '=') DL(m_equals << " = " << val << " " << op << " x");
 			switch (op)
 			{
-				case '-':
-				{
-					m_equals = val - m_equals;
-					break;	
-				}
-				case '/': // never happens
-				{
-					m_equals = val / m_equals;
-					break;
-				}
-				case '+': 
-				{
-					m_equals -= val;
-					break;
-				}
-				case '*': 
-				{
-					m_equals /= val;
-					break;
-				}
-				case '=':
-				{
-				m_equals = val;
-				}
+				case '-': m_equals = val - m_equals; break;	
+				case '/': m_equals = val / m_equals; break;
+				case '+': m_equals -= val; break;
+				case '*': m_equals /= val; break;
+				case '=': m_equals = val; 
 				default : return;
 			}
-			return;
 		}
-		if (op != '=') DL(m_equals << " = x " << op << " " << val);
-		switch (op)
+		else
 		{
-			case '+': 
+			if (op != '=') DL(m_equals << " = x " << op << " " << val);
+			switch (op)
 			{
-				m_equals -= val;
-				break;
+				case '+': m_equals -= val; break;
+				case '-': m_equals += val; break;	
+				case '*': m_equals /= val; break;
+				case '/': m_equals *= val; break;
+				case '=': m_equals = val; break;
+				default : return;
 			}
-			break;
-			case '-':
-			{
-				m_equals += val;
-				break;	
-			}
-			case '*': 
-			{
-				m_equals /= val;
-				break;
-			}
-			case '/':
-			{
-				m_equals *= val;
-				break;
-			}
-			case '=':
-			{
-				m_equals = val;
-			}
-			default : return;
 		}
 	}
 };
@@ -209,60 +172,54 @@ namespace Puzzle1
 		}
 
 		utils::printAnswer("monkey named root: \"", monkeyMap["root"], "\"");
-
 	}
-
 };
 
-// You need to get the dependencies in order I think
 namespace Puzzle2
 {
 	void solve(const std::string& infile)
 	{
 		auto inlines{ utils::bufferLines(infile) }; 
 
-		std::unordered_map<std::string, Monkey*> constMonkeys;
-		std::unordered_map<std::string, size_t> humnDependentMonkeys{  };
-		std::unordered_set<std::string> humnDependentMonkeyIds{}; // For quick id checks
-		// Can get rid of the string here, this fetches the whole input line anwyay
-		std::list<std::pair<std::string, size_t>> humnDependentIndices{ { "humn", 0 }}; // This gets popped later so the index doesn't matter
+		std::unordered_map<std::string_view, Monkey*> constMonkeys;
+		// std::unordered_map<std::string, size_t> humnDependentMonkeys{  };
+		std::unordered_set<std::string_view> humnDependentMonkeyIds{}; // For quick id checks
+		// Can get rid of the string here? this fetches the whole input line anwyay
+		std::list<std::pair<std::string_view, size_t>> humnDependentIndices{ { "humn", 0 }}; // This gets popped later so the index doesn't matter
 
-		bool bAllDependenciesFound{ true };
-		// bool bAllNumericMonkeysResolved{ true };
+		// Make list of monkeys which are affected by humn's value (in order)
+		bool bAllHumnAffectedFound{ true };
 		do
 		{
-			bAllDependenciesFound = true;
-			// bAllNumericMonkeysResolved = true;
+			bAllHumnAffectedFound = true;
 			for (size_t i{ 0 }; i < inlines.size(); ++i)
 			{
-				std::string id{ inlines[i].substr(0, 4) };
+				std::string_view id{ inlines[i].data(), 4 };
 
 				if (inlines[i][6] >= 'A')
 				{
-					if (humnDependentMonkeys.contains(id)) continue;
+					if (humnDependentMonkeyIds.contains(id)) continue;
 
-					const std::string left{ inlines[i].substr(6, 4) };
-					const std::string right{ inlines[i].substr(13, 4) };
-					// if (humnDependentMonkeys.contains(left) || humnDependentMonkeys.contains(right))
+					std::string_view left{ inlines[i].data() + 6 , 4 };
+					std::string_view right{ inlines[i].data() + 13, 4 };
 					if (humnDependentIndices.back().first == left || humnDependentIndices.back().first == right)
 					{
 						humnDependentMonkeyIds.insert(id);
-						humnDependentMonkeys.insert({ id, i });
 						humnDependentIndices.push_back( { id, i } );
-						bAllDependenciesFound = false;
+						bAllHumnAffectedFound = false;
 					}
 
 				}
 				else if (!constMonkeys.contains(id))
 				{
-					// Pure numeric monkeys
+					// Add purely numeric monkeys to map while we're at it
 					constMonkeys.insert({ id, new Monkey{ std::atol(inlines[i].data() + 6) } });
 				}
 			}
-		} while (!bAllDependenciesFound);
+		} while (!bAllHumnAffectedFound);
 
+		// Resolve maths monkeys which aren't affected by humn
 		bool bMathsMonkeysResolved{ true };
-
 		do
 		{
 			bMathsMonkeysResolved = true;
@@ -271,15 +228,15 @@ namespace Puzzle2
 			{
 				if (inlines[i][6] >= 'A')
 				{
-					std::string id{ inlines[i].substr(0, 4) };
+					std::string_view id{ inlines[i].data(), 4 };
 
 					if (constMonkeys.contains(id) || humnDependentMonkeyIds.contains(id))
 					{
 						continue;
 					}
 					
-					std::string left{ inlines[i].data() + 6, 4 };
-					std::string right{ inlines[i].data() + 13, 4 };
+					std::string_view left{ inlines[i].data() + 6, 4 };
+					std::string_view right{ inlines[i].data() + 13, 4 };
 
 					bMathsMonkeysResolved = false;
 
@@ -292,22 +249,22 @@ namespace Puzzle2
 			}
 		} while (!bMathsMonkeysResolved);
 
-		constMonkeys.erase("humn");
+		constMonkeys.erase("humn"); 
 
+		// Work backwards from root's equality check to find humn's value
 		Solver solver;
 		for (auto i{ humnDependentIndices.rbegin() }; i != --humnDependentIndices.rend(); ++i )
 		{
 			auto &line{ inlines[i->second] };
 			char op{ i->first == "root" ? '=' : line[11] };
 
-			std::string left{ line.data() + 6, 4 };
-			std::string right{ line.data() + 13, 4 };
+			std::string_view left{ line.data() + 6, 4 };
+			std::string_view right{ line.data() + 13, 4 };
 
 			bool bLeftConst{ constMonkeys.contains(left) };
 			monkeynum_t constMonkeyVal{ bLeftConst ? constMonkeys[left]->get() : constMonkeys[right]->get() };
 
 			solver.next(op, constMonkeyVal, bLeftConst);
-
 		}
 		
 		auto answer{ solver.get() };

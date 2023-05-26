@@ -13,12 +13,22 @@ class Logger
     bool m_bFileEnabled;
     bool m_bFileOpened; // Disable / Enable logging of particular instance
     
+    static std::filesystem::path defaultDirectory()
+    {
+        return utils::allLogsDir().append(utils::DayInfo::day());
+    }
+
     static std::string defaultFilePath()
     {
-        return utils::allLogsDir().append(utils::DayInfo::day()).append(utils::DayInfo::day() + (utils::bPuzzle2 ? "_log_pt2" : "_log_pt1" ));
+        return defaultDirectory().append(utils::DayInfo::day() + "_log" + (flags::t() ? "_test_" : "_") + (utils::bPuzzle2 ? "pt2" : "pt1" ));
     }
 
 public:
+    static std::string defaultDirectoryFile(std::string fileName)
+    {
+        return utils::allLogsDir().append(utils::DayInfo::day()).append(fileName);
+    }
+
     Logger(std::string filePath = defaultFilePath(), bool bFileEnabled = true, bool bOverwrite = false) : m_filePath{ filePath }, m_bFileEnabled{ bFileEnabled }, m_bFileOpened{ bFileEnabled }
     {
         if (!bOverwrite)
@@ -35,6 +45,9 @@ public:
             open();
         }
     }
+
+    Logger(bool bFileEnabled) : Logger(defaultFilePath(), bFileEnabled, false) {}
+    Logger(bool bFileEnabled, bool bOverwriteEnabled) : Logger(defaultFilePath(), bFileEnabled, bOverwriteEnabled) {}
 
     void log(const char* text)
     {
